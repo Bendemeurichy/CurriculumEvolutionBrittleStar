@@ -1,0 +1,20 @@
+<mujoco model="flat_environment">
+    <compiler angle="degree" coordinate="local"/>
+    <option timestep="0.01" gravity="0 0 -9.81" iterations="50" integrator="Euler"/>
+    <size nstack="3000" nuser_geom="1"/>
+
+    <worldbody>
+        <geom name="floor" type="plane" pos="0 0 0" size="10 10 0.1" rgba="0.8 0.9 0.8 1"/>
+        <body name="brittle_star" pos="0 0 0.1">
+            <geom type="sphere" size="0.1" rgba="0.2 0.3 0.8 1"/>
+        </body>
+    </worldbody>
+
+    <asset>
+        <texture name="skybox" type="skybox" builtin="gradient" rgb1="0.4 0.6 0.8" rgb2="0.8 0.9 1" width="512" height="512"/>
+    </asset>
+
+    <visual>
+        <map znear="0.01" zfar="50"/>
+    </visual>
+</mujoco>
