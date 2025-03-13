@@ -1,109 +1,159 @@
-absl-py==2.1.0 ; python_version >= "3.13"
-annotated-types==0.7.0 ; python_version >= "3.13"
-appnope==0.1.4 ; python_version >= "3.13" and platform_system == "Darwin"
-asttokens==3.0.0 ; python_version >= "3.13"
-attrs==25.3.0 ; python_version >= "3.13"
-biorobot==0.3.7 ; python_version >= "3.13"
-certifi==2025.1.31 ; python_version >= "3.13"
-cffi==1.17.1 ; python_version >= "3.13" and implementation_name == "pypy"
-charset-normalizer==3.4.1 ; python_version >= "3.13"
-chex==0.1.89 ; python_version >= "3.13"
-click==8.1.8 ; python_version >= "3.13"
-cloudpickle==3.1.1 ; python_version >= "3.13"
-colorama==0.4.6 ; (platform_system == "Windows" or sys_platform == "win32") and python_version >= "3.13"
-comm==0.2.2 ; python_version >= "3.13"
-contourpy==1.3.1 ; python_version >= "3.13"
-cycler==0.12.1 ; python_version >= "3.13"
-debugpy==1.8.13 ; python_version >= "3.13"
-decorator==5.2.1 ; python_version >= "3.13"
-dm-control==1.0.28 ; python_version >= "3.13"
-dm-env==1.6 ; python_version >= "3.13"
-dm-tree==0.1.9 ; python_version >= "3.13"
-docker-pycreds==0.4.0 ; python_version >= "3.13"
-etils==1.12.2 ; python_version >= "3.13"
-executing==2.2.0 ; python_version >= "3.13"
-farama-notifications==0.0.4 ; python_version >= "3.13"
-flax==0.10.4 ; python_version >= "3.13"
-fonttools==4.56.0 ; python_version >= "3.13"
-fprs==1.0.0 ; python_version >= "3.13"
-fsspec==2025.3.0 ; python_version >= "3.13"
-gitdb==4.0.12 ; python_version >= "3.13"
-gitpython==3.1.44 ; python_version >= "3.13"
-glfw==2.8.0 ; python_version >= "3.13"
-gymnasium==1.1.1 ; python_version >= "3.13"
-humanize==4.12.1 ; python_version >= "3.13"
-idna==3.10 ; python_version >= "3.13"
-imageio==2.37.0 ; python_version >= "3.13"
-importlib-resources==6.5.2 ; python_version >= "3.13"
-ipykernel==6.29.5 ; python_version >= "3.13"
-ipython-pygments-lexers==1.1.1 ; python_version >= "3.13"
-ipython==9.0.2 ; python_version >= "3.13"
-jax==0.5.2 ; python_version >= "3.13"
-jaxlib==0.5.1 ; python_version >= "3.13"
-jedi==0.19.2 ; python_version >= "3.13"
-jupyter-client==8.6.3 ; python_version >= "3.13"
-jupyter-core==5.7.2 ; python_version >= "3.13"
-kiwisolver==1.4.8 ; python_version >= "3.13"
-labmaze==1.0.6 ; python_version >= "3.13"
-lxml==5.3.1 ; python_version >= "3.13"
-markdown-it-py==3.0.0 ; python_version >= "3.13"
-matplotlib-inline==0.1.7 ; python_version >= "3.13"
-matplotlib==3.10.1 ; python_version >= "3.13"
-mdurl==0.1.2 ; python_version >= "3.13"
-mediapy==1.2.2 ; python_version >= "3.13"
-ml-dtypes==0.5.1 ; python_version >= "3.13"
-moojoco==1.1.5 ; python_version >= "3.13"
-msgpack==1.1.0 ; python_version >= "3.13"
-mujoco-mjx==3.3.0 ; python_version >= "3.13"
-mujoco==3.3.0 ; python_version >= "3.13"
-nest-asyncio==1.6.0 ; python_version >= "3.13"
-numpy==2.2.3 ; python_version >= "3.13"
-opencv-python==4.11.0.86 ; python_version >= "3.13"
-opt-einsum==3.4.0 ; python_version >= "3.13"
-optax==0.2.4 ; python_version >= "3.13"
-orbax-checkpoint==0.11.8 ; python_version >= "3.13"
-packaging==24.2 ; python_version >= "3.13"
-parso==0.8.4 ; python_version >= "3.13"
-pexpect==4.9.0 ; python_version >= "3.13" and sys_platform != "win32" and sys_platform != "emscripten"
-pillow==11.1.0 ; python_version >= "3.13"
-pip==25.0.1 ; python_version >= "3.13"
-platformdirs==4.3.6 ; python_version >= "3.13"
-prompt-toolkit==3.0.50 ; python_version >= "3.13"
-protobuf==5.29.3 ; python_version >= "3.13"
-psutil==7.0.0 ; python_version >= "3.13"
-ptyprocess==0.7.0 ; python_version >= "3.13" and sys_platform != "win32" and sys_platform != "emscripten"
-pure-eval==0.2.3 ; python_version >= "3.13"
-pycparser==2.22 ; python_version >= "3.13" and implementation_name == "pypy"
-pydantic-core==2.27.2 ; python_version >= "3.13"
-pydantic==2.10.6 ; python_version >= "3.13"
-pygments==2.19.1 ; python_version >= "3.13"
-pyopengl==3.1.9 ; python_version >= "3.13"
-pyparsing==3.2.1 ; python_version >= "3.13"
-python-dateutil==2.9.0.post0 ; python_version >= "3.13"
-pywin32==309 ; sys_platform == "win32" and platform_python_implementation != "PyPy" and python_version >= "3.13"
-pyyaml==6.0.2 ; python_version >= "3.13"
-pyzmq==26.3.0 ; python_version >= "3.13"
-requests==2.32.3 ; python_version >= "3.13"
-rich==13.9.4 ; python_version >= "3.13"
-scipy==1.15.2 ; python_version >= "3.13"
-sentry-sdk==2.22.0 ; python_version >= "3.13"
-setproctitle==1.3.5 ; python_version >= "3.13"
-setuptools==76.0.0 ; python_version >= "3.13"
-simplejson==3.20.1 ; python_version >= "3.13"
-six==1.17.0 ; python_version >= "3.13"
-smmap==5.0.2 ; python_version >= "3.13"
-stack-data==0.6.3 ; python_version >= "3.13"
-tensorstore==0.1.72 ; python_version >= "3.13"
-toolz==1.0.0 ; python_version >= "3.13"
-tornado==6.4.2 ; python_version >= "3.13"
-tqdm==4.67.1 ; python_version >= "3.13"
-traitlets==5.14.3 ; python_version >= "3.13"
-transforms3d==0.4.2 ; python_version >= "3.13"
-treescope==0.1.9 ; python_version >= "3.13"
-trimesh==4.6.4 ; python_version >= "3.13"
-typing-extensions==4.12.2 ; python_version >= "3.13"
-urllib3==2.3.0 ; python_version >= "3.13"
-wandb==0.19.8 ; python_version >= "3.13"
-wcwidth==0.2.13 ; python_version >= "3.13"
-wrapt==1.17.2 ; python_version >= "3.13"
-zipp==3.21.0 ; python_version >= "3.13"
+absl-py==2.1.0
+anyio==3.7.0
+argon2-cffi==21.3.0
+argon2-cffi-bindings==21.2.0
+arrow==1.2.3
+asttokens==2.2.1
+attrs==23.1.0
+autocommand==2.2.2
+backcall==0.2.0
+beautifulsoup4==4.12.2
+biorobot==0.3.7
+bleach==6.0.0
+certifi==2025.1.31
+cffi==1.15.1
+charset-normalizer==3.4.1
+chex==0.1.89
+cloudpickle==3.1.1
+colorama==0.4.6
+comm==0.1.3
+contourpy==1.3.1
+cycler==0.12.1
+Cython==0.29.35
+debugpy==1.6.7
+decorator==5.1.1
+defusedxml==0.7.1
+dm-env==1.6
+dm-tree==0.1.9
+dm_control==1.0.28
+etils==1.12.2
+executing==1.2.0
+Farama-Notifications==0.0.4
+fastjsonschema==2.17.1
+flax==0.10.4
+fonttools==4.56.0
+fprs==1.0.0
+fqdn==1.5.1
+fsspec==2025.3.0
+glfw==2.8.0
+gymnasium==1.1.1
+humanize==4.12.1
+idna==3.10
+imageio==2.37.0
+importlib_resources==6.5.2
+ipykernel==6.23.1
+ipython==8.13.2
+ipywidgets==8.0.6
+isoduration==20.11.0
+jaraco.classes==3.3.0
+jax==0.5.2
+jaxlib==0.5.1
+jedi==0.18.2
+jeepney==0.8.0
+Jinja2==3.1.2
+jsonpointer==2.3
+jupyter-console==6.6.3
+jupyter-events==0.6.3
+jupyter_client==8.2.0
+jupyter_core==5.3.0
+jupyter_server==2.6.0
+jupyter_server_terminals==0.4.4
+jupyterlab-pygments==0.2.2
+jupyterlab-widgets==3.0.7
+keyring==23.13.1
+kiwisolver==1.4.8
+labmaze==1.0.6
+lxml==5.3.1
+markdown-it-py==3.0.0
+MarkupSafe==2.1.2
+matplotlib==3.10.1
+matplotlib-inline==0.1.6
+mdurl==0.1.2
+mediapy==1.2.2
+mistune==2.0.5
+ml_dtypes==0.5.1
+moojoco==1.1.5
+msgpack==1.1.0
+mujoco==3.3.0
+mujoco-mjx==3.3.0
+nbclassic==1.0.0
+nbclient==0.8.0
+nbconvert==7.4.0
+nbformat==5.8.0
+nest-asyncio==1.5.6
+notebook==6.5.4
+notebook_shim==0.2.3
+numpy==2.2.3
+openconnect-sso==0.8.1
+opencv-python==4.11.0.86
+opt_einsum==3.4.0
+optax==0.2.4
+orbax-checkpoint==0.11.8
+overrides==7.3.1
+packaging==24.2
+pandocfilters==1.5.0
+parso==0.8.3
+pexpect==4.8.0
+pickleshare==0.7.5
+pillow==11.1.0
+pip-review==1.3.0
+platformdirs==4.3.6
+prometheus-client==0.17.0
+prompt-toolkit==3.0.38
+protobuf==6.30.0
+psutil==5.9.5
+ptyprocess==0.7.0
+pure-eval==0.2.2
+Pygments==2.15.1
+PyOpenGL==3.1.9
+pyotp==2.9.0
+pyparsing==3.2.1
+PyQt6==6.5.3
+PyQt6-Qt6==6.5.3
+PyQt6-sip==13.6.0
+PyQt6-WebEngine==6.5.0
+PyQt6-WebEngine-Qt6==6.5.3
+pyrsistent==0.19.3
+PySocks==1.7.1
+python-dateutil==2.8.2
+python-json-logger==2.0.7
+PyYAML==6.0.2
+pyzmq==25.1.0
+qtconsole==5.4.3
+QtPy==2.3.1
+requests==2.32.3
+rfc3339-validator==0.1.4
+rfc3986-validator==0.1.1
+rich==13.9.4
+sagemath==1.3.0
+scipy==1.15.2
+seaborn==0.12.2
+SecretStorage==3.3.3
+simplejson==3.20.1
+six==1.17.0
+sniffio==1.3.0
+sns==0.1
+stack-data==0.6.2
+structlog==23.2.0
+tensorstore==0.1.72
+terminado==0.17.1
+tinycss2==1.2.1
+toml==0.10.2
+toolz==1.0.0
+tornado==6.3.2
+tqdm==4.67.1
+traitlets==5.9.0
+transforms3d==0.4.2
+treescope==0.1.9
+trimesh==4.6.4
+typing_extensions==4.12.2
+uri-template==1.2.0
+urllib3==2.3.0
+wandb==0.19.8
+wcwidth==0.2.6
+webcolors==1.13
+webencodings==0.5.1
+websocket-client==1.5.2
+widgetsnbextension==4.0.7
+wrapt==1.17.2
+zipp==3.21.0
