@@ -174,4 +174,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-src/simulated_output
+src/simulation_output
