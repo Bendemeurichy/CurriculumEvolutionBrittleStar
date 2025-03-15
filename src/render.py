@@ -107,7 +107,7 @@ def save_frame_samples(frames, output_dir="simulation_output", sample_rate=10):
         plt.savefig(f'{output_dir}/frame_{i:03d}.png')
         plt.close()
 
-def create_animation(frames, output_path="simulation_output/brittle_star_simulation.mp4", interval=50):
+def create_animation(frames, output_path="simulation_output/brittle_star_simulation.mp4", interval=33):
     """Create and save an animation from the simulation frames"""
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -130,8 +130,8 @@ def create_animation(frames, output_path="simulation_output/brittle_star_simulat
         blit=True
     )
     
-    # Save the animation
-    ani.save(output_path)
+    # Save the animation with higher quality
+    ani.save(output_path, fps=30, dpi=100)
     return ani
 
 def play_video(video_path):

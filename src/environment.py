@@ -83,6 +83,10 @@ def create_environment(
 
 def create_example_environment(
     env_type: str = "directed_locomotion",
+    simulation_time: int = 5,
+    time_scale: int = 2,
+    target_distance: float = 3.0,
+    success_threshold: float = 0.75,  # This parameter will be used in our code, not passed to environment
 ) -> (
     BrittleStarUndirectedLocomotionEnvironmentConfiguration
     | BrittleStarDirectedLocomotionEnvironmentConfiguration
@@ -95,11 +99,11 @@ def create_example_environment(
             # Visualization mode
             render_mode="rgb_array",
             # Number of seconds per episode
-            simulation_time=5,
+            simulation_time=simulation_time,
             # Number of physics substeps to do per control step
             num_physics_steps_per_control_step=10,
             # Integer factor by which to multiply the original physics timestep of 0.002,
-            time_scale=2,
+            time_scale=time_scale,
             # Which camera's to render (all the brittle star environments contain 2 cameras: 1 top-down camera and one close-up camera that follows the brittle star),
             camera_ids=[0, 1],
             # Resolution to render with ((height, width) in pixels)
@@ -108,12 +112,13 @@ def create_example_environment(
     elif env_type == "directed_locomotion":
         return BrittleStarDirectedLocomotionEnvironmentConfiguration(
             # Distance to put our target at (targets are spawned on a circle around the starting location with this given radius).
-            target_distance=3.0,
+            target_distance=target_distance,
+            # We'll handle success_threshold in our own code
             joint_randomization_noise_scale=0.0,
             render_mode="rgb_array",
-            simulation_time=5,
+            simulation_time=simulation_time,
             num_physics_steps_per_control_step=10,
-            time_scale=2,
+            time_scale=time_scale,
             camera_ids=[0, 1],
             render_size=(480, 640),
         )
@@ -124,9 +129,9 @@ def create_example_environment(
             light_perlin_noise_scale=0,
             joint_randomization_noise_scale=0,
             render_mode="rgb_array",
-            simulation_time=5,
+            simulation_time=simulation_time,
             num_physics_steps_per_control_step=10,
-            time_scale=2,
+            time_scale=time_scale,
             camera_ids=[0, 1],
             render_size=(480, 640),
         )
@@ -135,7 +140,14 @@ def create_example_environment(
 
 
 def initialize_simulation(
-    env_type="directed_locomotion", num_arms=5, num_segments_per_arm=4, backend="MJC"
+    env_type="directed_locomotion", 
+    num_arms=5, 
+    num_segments_per_arm=4, 
+    backend="MJC",
+    simulation_time=5,
+    time_scale=2,
+    target_distance=3.0,
+    success_threshold=0.75
 ):
     """Initialize the brittle star simulation environment"""
     morphology_specification = default_brittle_star_morphology_specification(
@@ -151,7 +163,13 @@ def initialize_simulation(
         wall_height=1.5,
         wall_thickness=0.1,
     )
-    environment_configuration = create_example_environment(env_type=env_type)
+    environment_configuration = create_example_environment(
+        env_type=env_type,
+        simulation_time=simulation_time,
+        time_scale=time_scale,
+        target_distance=target_distance,
+        success_threshold=success_threshold
+    )
 
     env = create_environment(
         morphology_specification=morphology_specification,
@@ -187,8 +205,74 @@ def run_simulation(env, state, environment_configuration):
         # TODO: measure observations to determine action
         # Sample random actions to pass to the environment
         action = env.action_space.sample()
+        print('Action:', action)
         state = env.step(state=state, action=action)  # Update state
+        print('State:', state)
         # TODO: collect observations and rewards
+        processed_frame = render.post_render(
+            env.render(state=state), environment_configuration
+        )
+        mjc_frames.append(processed_frame)
+
+    return mjc_frames
+
+
+def run_simulation_with_controller(env, state, environment_configuration, controller=None, verbose=True):
+    """Run the simulation with an optional controller and collect frames"""
+    mjc_frames = []
+    
+    initial_distance = state.observations['xy_distance_to_target'][0] if 'xy_distance_to_target' in state.observations else None
+    target_position = state.info.get('xy_target_position', None)
+    
+    if verbose:
+        print(f"Initial distance to target: {initial_distance}")
+        print(f"Target position: {target_position}")
+        print(f"Initial position: {state.observations.get('disk_position', None)}")
+        print(f"Environment configuration: {environment_configuration}")
+
+    # Get initial frame
+    frame = env.render(state=state)
+    processed_frame = render.post_render(
+        render_output=frame, environment_configuration=environment_configuration
+    )
+    mjc_frames.append(processed_frame)
+
+    step_count = 0
+    while not (state.terminated | state.truncated):
+        if controller is None:
+            # Sample random actions if no controller provided
+            action = env.action_space.sample()
+        else:
+            # Use provided controller to determine action
+            # TODO: Add / remove some observations, don't forget to update the `obs` variable in neat_controller.py as well!!!
+            obs = np.concatenate([
+                state.observations['joint_position'],
+                state.observations['joint_velocity'],
+                state.observations['disk_position'],
+                state.observations['disk_linear_velocity'],
+                state.observations['unit_xy_direction_to_target'],
+                state.observations['xy_distance_to_target']
+            ])
+            action = controller.activate(obs)
+            action = np.array(action)
+        
+        # Update state
+        old_state = state
+        state = env.step(state=state, action=action)
+        step_count += 1
+        
+        # Check if terminated because it reached the target
+        if state.terminated and verbose:
+            current_distance = state.observations['xy_distance_to_target'][0]
+            current_position = state.observations['disk_position'][:2]
+            print(f"\nTerminated at step {step_count}:")
+            print(f"  Current distance to target: {current_distance}")
+            print(f"  Current position: {current_position}")
+            print(f"  Target position: {target_position}")
+            print(f"  Reward: {state.reward}")
+            print(f"  Terminated reason: {state.info.get('termination_reason', 'unknown')}")
+        
+        # Collect frame
         processed_frame = render.post_render(
             env.render(state=state), environment_configuration
         )
@@ -201,8 +285,8 @@ if __name__ == "__main__":
     # Initialize simulation
     env, state, environment_configuration = initialize_simulation(
         env_type="directed_locomotion",
-        num_arms=5,
-        num_segments_per_arm=4,
+        num_arms=3,
+        num_segments_per_arm=1,
         backend="MJC",
     )
 

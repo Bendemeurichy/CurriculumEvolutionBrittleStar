@@ -175,3 +175,8 @@ cython_debug/
 .pypirc
 
 src/simulation_output
+*.mp4
+*.png
+
+src/checkpoints
+src/training_process
