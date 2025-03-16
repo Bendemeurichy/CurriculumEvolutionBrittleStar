@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from abc import ABC, abstractmethod
 from environment import initialize_simulation
 import render
 
@@ -32,16 +31,6 @@ best_genome_per_generation = {}
 
 
 def eval_individual(individual, create_network_func):
-    """
-    Evaluate a single individual (genome)
-    
-    Args:
-        individual: The individual to evaluate
-        create_network_func: Function to create a neural network from the individual
-    
-    Returns:
-        fitness: The fitness score
-    """
     net = create_network_func(individual)
     
     env, state, environment_configuration = initialize_simulation(
@@ -80,8 +69,9 @@ def eval_individual(individual, create_network_func):
             state.observations['xy_distance_to_target']
         ])
         
-        action = net(obs)  # Generic call - implementations will handle specifics
-        action = np.array(action)  # Convert to numpy array
+        # TODO: this action is the output of the neat network
+        action = net(obs)  
+        action = np.array(action)
         
         old_state = state  # Save previous state
         state = env.step(state=state, action=action)
