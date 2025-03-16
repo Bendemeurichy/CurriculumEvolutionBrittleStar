@@ -140,14 +140,14 @@ def create_example_environment(
 
 
 def initialize_simulation(
-    env_type="directed_locomotion", 
-    num_arms=5, 
-    num_segments_per_arm=4, 
+    env_type="directed_locomotion",
+    num_arms=5,
+    num_segments_per_arm=4,
     backend="MJC",
     simulation_time=5,
     time_scale=2,
     target_distance=3.0,
-    success_threshold=0.75
+    success_threshold=0.75,
 ):
     """Initialize the brittle star simulation environment"""
     morphology_specification = default_brittle_star_morphology_specification(
@@ -168,7 +168,7 @@ def initialize_simulation(
         simulation_time=simulation_time,
         time_scale=time_scale,
         target_distance=target_distance,
-        success_threshold=success_threshold
+        success_threshold=success_threshold,
     )
 
     env = create_environment(
@@ -205,9 +205,9 @@ def run_simulation(env, state, environment_configuration):
         # TODO: measure observations to determine action
         # Sample random actions to pass to the environment
         action = env.action_space.sample()
-        print('Action:', action)
+        print("Action:", action)
         state = env.step(state=state, action=action)  # Update state
-        print('State:', state)
+        print("State:", state)
         # TODO: collect observations and rewards
         processed_frame = render.post_render(
             env.render(state=state), environment_configuration
@@ -217,13 +217,19 @@ def run_simulation(env, state, environment_configuration):
     return mjc_frames
 
 
-def run_simulation_with_controller(env, state, environment_configuration, controller=None, verbose=True):
+def run_simulation_with_controller(
+    env, state, environment_configuration, controller=None, verbose=True
+):
     """Run the simulation with an optional controller and collect frames"""
     mjc_frames = []
-    
-    initial_distance = state.observations['xy_distance_to_target'][0] if 'xy_distance_to_target' in state.observations else None
-    target_position = state.info.get('xy_target_position', None)
-    
+
+    initial_distance = (
+        state.observations["xy_distance_to_target"][0]
+        if "xy_distance_to_target" in state.observations
+        else None
+    )
+    target_position = state.info.get("xy_target_position", None)
+
     if verbose:
         print(f"Initial distance to target: {initial_distance}")
         print(f"Target position: {target_position}")
@@ -245,33 +251,37 @@ def run_simulation_with_controller(env, state, environment_configuration, contro
         else:
             # Use provided controller to determine action
             # TODO: Add / remove some observations, don't forget to update the `obs` variable in neat_controller.py as well!!!
-            obs = np.concatenate([
-                state.observations['joint_position'],
-                state.observations['joint_velocity'],
-                state.observations['disk_position'],
-                state.observations['disk_linear_velocity'],
-                state.observations['unit_xy_direction_to_target'],
-                state.observations['xy_distance_to_target']
-            ])
+            obs = np.concatenate(
+                [
+                    state.observations["joint_position"],
+                    state.observations["joint_velocity"],
+                    state.observations["disk_position"],
+                    state.observations["disk_linear_velocity"],
+                    state.observations["unit_xy_direction_to_target"],
+                    state.observations["xy_distance_to_target"],
+                ]
+            )
             action = controller.activate(obs)
             action = np.array(action)
-        
+
         # Update state
         old_state = state
         state = env.step(state=state, action=action)
         step_count += 1
-        
+
         # Check if terminated because it reached the target
         if state.terminated and verbose:
-            current_distance = state.observations['xy_distance_to_target'][0]
-            current_position = state.observations['disk_position'][:2]
+            current_distance = state.observations["xy_distance_to_target"][0]
+            current_position = state.observations["disk_position"][:2]
             print(f"\nTerminated at step {step_count}:")
             print(f"  Current distance to target: {current_distance}")
             print(f"  Current position: {current_position}")
             print(f"  Target position: {target_position}")
             print(f"  Reward: {state.reward}")
-            print(f"  Terminated reason: {state.info.get('termination_reason', 'unknown')}")
-        
+            print(
+                f"  Terminated reason: {state.info.get('termination_reason', 'unknown')}"
+            )
+
         # Collect frame
         processed_frame = render.post_render(
             env.render(state=state), environment_configuration
@@ -294,6 +304,7 @@ if __name__ == "__main__":
     initial_frame = render.post_render(
         env.render(state=state), environment_configuration
     )
+
     render.visualize_initial_frame(initial_frame)
 
     # Run full simulation
