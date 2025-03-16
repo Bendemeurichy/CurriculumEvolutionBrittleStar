@@ -205,74 +205,10 @@ def run_simulation(env, state, environment_configuration):
         # TODO: measure observations to determine action
         # Sample random actions to pass to the environment
         action = env.action_space.sample()
-        print('Action:', action)
+        # print('Action:', action)
         state = env.step(state=state, action=action)  # Update state
-        print('State:', state)
+        # print('State:', state)
         # TODO: collect observations and rewards
-        processed_frame = render.post_render(
-            env.render(state=state), environment_configuration
-        )
-        mjc_frames.append(processed_frame)
-
-    return mjc_frames
-
-
-def run_simulation_with_controller(env, state, environment_configuration, controller=None, verbose=True):
-    """Run the simulation with an optional controller and collect frames"""
-    mjc_frames = []
-    
-    initial_distance = state.observations['xy_distance_to_target'][0] if 'xy_distance_to_target' in state.observations else None
-    target_position = state.info.get('xy_target_position', None)
-    
-    if verbose:
-        print(f"Initial distance to target: {initial_distance}")
-        print(f"Target position: {target_position}")
-        print(f"Initial position: {state.observations.get('disk_position', None)}")
-        print(f"Environment configuration: {environment_configuration}")
-
-    # Get initial frame
-    frame = env.render(state=state)
-    processed_frame = render.post_render(
-        render_output=frame, environment_configuration=environment_configuration
-    )
-    mjc_frames.append(processed_frame)
-
-    step_count = 0
-    while not (state.terminated | state.truncated):
-        if controller is None:
-            # Sample random actions if no controller provided
-            action = env.action_space.sample()
-        else:
-            # Use provided controller to determine action
-            # TODO: Add / remove some observations, don't forget to update the `obs` variable in neat_controller.py as well!!!
-            obs = np.concatenate([
-                state.observations['joint_position'],
-                state.observations['joint_velocity'],
-                state.observations['disk_position'],
-                state.observations['disk_linear_velocity'],
-                state.observations['unit_xy_direction_to_target'],
-                state.observations['xy_distance_to_target']
-            ])
-            action = controller.activate(obs)
-            action = np.array(action)
-        
-        # Update state
-        old_state = state
-        state = env.step(state=state, action=action)
-        step_count += 1
-        
-        # Check if terminated because it reached the target
-        if state.terminated and verbose:
-            current_distance = state.observations['xy_distance_to_target'][0]
-            current_position = state.observations['disk_position'][:2]
-            print(f"\nTerminated at step {step_count}:")
-            print(f"  Current distance to target: {current_distance}")
-            print(f"  Current position: {current_position}")
-            print(f"  Target position: {target_position}")
-            print(f"  Reward: {state.reward}")
-            print(f"  Terminated reason: {state.info.get('termination_reason', 'unknown')}")
-        
-        # Collect frame
         processed_frame = render.post_render(
             env.render(state=state), environment_configuration
         )
@@ -285,8 +221,8 @@ if __name__ == "__main__":
     # Initialize simulation
     env, state, environment_configuration = initialize_simulation(
         env_type="directed_locomotion",
-        num_arms=3,
-        num_segments_per_arm=1,
+        num_arms=5,
+        num_segments_per_arm=4,
         backend="MJC",
     )
 
