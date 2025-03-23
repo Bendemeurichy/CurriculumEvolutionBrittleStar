@@ -22,7 +22,6 @@ SUCCESS_THRESHOLD = 0.75
 os.makedirs("training_progress", exist_ok=True)
 os.makedirs("checkpoints", exist_ok=True)
 
-# Global tracking variables
 best_fitness_history = []
 avg_fitness_history = []
 generation_count = 0

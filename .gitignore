@@ -180,3 +180,7 @@ src/simulation_output
 
 src/checkpoints
 src/training_process
+
+*.svg
+*.pkl 
+*.npz
