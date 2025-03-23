@@ -7,11 +7,6 @@ from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.problem.func_fit import CustomFuncFit
 from tensorneat.common import ACT, AGG
 
-def pagie_polynomial(inputs):
-    x, y = inputs
-    res = 1 / (1 + jnp.pow(x, -4)) + 1 / (1 + jnp.pow(y, -4))
-    return jnp.array([res])
-
 def add_square_activation():
     def square(x):
         return x ** 2
@@ -20,7 +15,7 @@ def add_square_activation():
     except ValueError:
         pass
 
-def train(output_dir="./"):
+def train_and_save_pkl(output_dir="./", pagie_polynomial=None, generation_limit=50):
     custom_problem = CustomFuncFit(
         func=pagie_polynomial,
         low_bounds=[-1, -1],
@@ -50,11 +45,9 @@ def train(output_dir="./"):
     pipeline = Pipeline(
         algorithm,
         problem=custom_problem,
-        generation_limit=50,
+        generation_limit=generation_limit,
         fitness_target=-1e-6,
         seed=42,
-        is_save=True,
-        save_dir=output_dir,
     )
     
     state = pipeline.setup()
@@ -71,20 +64,21 @@ def train(output_dir="./"):
             pickle.dump(best, f)
         print(f"Best model saved to {model_path}")
         
-       
+        # Visualize the network
         network = algorithm.genome.network_dict(state, *best)
-        algorithm.genome.visualize(network, save_path=os.path.join(output_dir, "network.svg"))
-        print(f"NN visualization saved to {os.path.join(output_dir, 'network.svg')}")
-    
+        algorithm.genome.visualize(network, save_path=os.path.join(output_dir, "network_pkl.svg"))
+        print(f"NN visualization saved to {os.path.join(output_dir, 'network_pkl.svg')}")
+        
+        return model_path
     
     except Exception as e:
         print(f"Error during evolution: {str(e)}")
         return None
 
-def use_trained_model(model_path, inputs):
+def load_and_use_pkl_model(model_path, inputs, pagie_polynomial=None):
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
-    print("Model loaded, length:", len(model))
+    print("Model loaded from pickle, length:", len(model))
     
     add_square_activation()
     
@@ -125,29 +119,42 @@ def use_trained_model(model_path, inputs):
     transformed_model = algorithm.transform(state, model)
     prediction = algorithm.forward(state, transformed_model, inputs_array)
     
-    return prediction
-       
+    actual = pagie_polynomial(inputs_array)[0] if pagie_polynomial else None
+    error = abs(prediction[0] - actual) if actual is not None else None
+    
+    return prediction, actual, error
+
+def test_pkl_model(model_path, test_inputs, pagie_polynomial):
+    print("\nTesting pickle-based model:")
+    if os.path.exists(model_path):
+        for test_input in test_inputs:
+            prediction, actual, error = load_and_use_pkl_model(model_path, test_input, pagie_polynomial)
+            print(f"Input {test_input}: Prediction {prediction}, Actual: {actual}, Error: {error}")
+    else:
+        print(f"No pickle model file found at {model_path}.")
+
+
 
 if __name__ == "__main__":
-    output_dir = os.path.join(os.path.dirname(__file__), "output")
-    model_path = os.path.join(output_dir, "best_model.pkl")
-    best_model = train(output_dir)
 
-    if not os.path.exists(model_path):
-        best_model = train(output_dir)
-        print("Training completed")
+    output_dir = os.path.join(os.path.dirname(__file__), "output")
+    os.makedirs(output_dir, exist_ok=True)
     
+
+    pkl_model_path = os.path.join(output_dir, "best_model.pkl")
     
+    def pagie_polynomial(inputs):
+        x, y = inputs
+        res = 1 / (1 + jnp.pow(x, -4)) + 1 / (1 + jnp.pow(y, -4))
+        return jnp.array([res])
+    
+    pkl_model_path = train_and_save_pkl(output_dir, pagie_polynomial, generation_limit=10)
+
     test_inputs = [
         [0.5, 0.5],
         [0.1, 0.9],
         [-0.5, -0.5],
         [0.0, 0.0]
     ]
+    test_pkl_model(pkl_model_path, test_inputs, pagie_polynomial)
     
-    print("\nModel predictions:")
-    for test_input in test_inputs:
-        prediction = use_trained_model(model_path, test_input)
-        actual = pagie_polynomial(jnp.array(test_input))[0]
-        print(f"Input {test_input}: Prediction {prediction}, Actual: {actual} Error: {abs(prediction[0] - actual)}")
-        

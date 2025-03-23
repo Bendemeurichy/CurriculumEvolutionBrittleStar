@@ -184,3 +184,6 @@ src/training_process
 *.svg
 *.pkl 
 *.npz
+
+src/neat_example/output/log.txt
+src/neat_example/output/config.txt
