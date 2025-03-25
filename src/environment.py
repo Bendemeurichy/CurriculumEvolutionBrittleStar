@@ -54,9 +54,10 @@ def create_environment(
     environment_configuration: MuJoCoEnvironmentConfiguration,
     backend: str,
 ) -> DualMuJoCoEnvironment:
-    assert backend in ["MJC", "MJX"], (
-        "Please specify a valid backend; Either 'MJC' or 'MJX'"
-    )
+    assert backend in [
+        "MJC",
+        "MJX",
+    ], "Please specify a valid backend; Either 'MJC' or 'MJX'"
 
     morphology = create_morphology(morphology_specification=morphology_specification)
     arena = create_arena(arena_configuration=arena_configuration)
@@ -222,7 +223,7 @@ if __name__ == "__main__":
     env, state, environment_configuration = initialize_simulation(
         env_type="directed_locomotion",
         num_arms=5,
-        num_segments_per_arm=4,
+        num_segments_per_arm=[1, 0, 0, 1, 0],
         backend="MJC",
     )
 
