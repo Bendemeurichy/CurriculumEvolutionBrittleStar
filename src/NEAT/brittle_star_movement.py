@@ -1,45 +1,43 @@
-# Prepartion
 import jax
 import jax.numpy as jnp
 from tensorneat.problem import BaseProblem
 
+from observations import get_joint_positions, get_distance_to_target
 
-class MovementProblem(BaseProblem):
+
+class MovementToTargetProblem(BaseProblem):
     jitable = True
 
-    def evaluate(self, state, randkey, act_func, params):
-        # Use ``act_func(state, params, inputs)`` to do network forward
-
-        # do batch forward for all inputs (using jax.vamp)
-        predict = jax.vmap(act_func, in_axes=(None, None, 0))(
-            state, params, INPUTS
-        )  # should be shape (1000, 1)
-
-        # calculate loss
-        loss = jnp.mean(jnp.square(predict - LABELS))
-
-        # return negative loss as fitness
-        # TensorNEAT maximizes fitness, equivalent to minimizes loss
-        return -loss
+    def __init__(self, max_steps=100):
+        """
+        max_steps: number of simulation steps per evaluation.
+        """
+        self.max_steps = max_steps
 
     @property
     def input_shape(self):
-        # the input shape that the act_func expects
-        return (2,)
+        # For two arms with 2 inputs each (relative x and y),
+        # we expect a flattened input of size 4.
+        return (4,)
 
     @property
     def output_shape(self):
-        # the output shape that the act_func returns
-        return (1,)
+        # Two arms with 2 outputs each (control updates) yield 4 outputs.
+        return (4,)
+
+    def evaluate(self, state, randkey, act_func, params):
+        """
+        Simulate movement toward target.
+        At each timestep an observation is constructed as the relative vector from
+        current position to target, duplicated for the two arms.
+        The network outputs 4 values; we take the average of the two pairs as the
+        delta update for position.
+        Fitness is defined by the imported fitness function.
+        """
+        pass
 
     def show(self, state, randkey, act_func, params, *args, **kwargs):
-        # shocase the performance of one individual
-        predict = jax.vmap(act_func, in_axes=(None, None, 0))(state, params, INPUTS)
-
-        loss = jnp.mean(jnp.square(predict - LABELS))
-
-        msg = ""
-        for i in range(INPUTS.shape[0]):
-            msg += f"input: {INPUTS[i]}, target: {LABELS[i]}, predict: {predict[i]}\n"
-        msg += f"loss: {loss}\n"
-        print(msg)
+        """
+        Run one evaluation and print details including the trajectory.
+        """
+        pass
