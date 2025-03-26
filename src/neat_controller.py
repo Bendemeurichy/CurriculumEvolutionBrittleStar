@@ -22,7 +22,7 @@ from observations import (
 import logging
 
 #  Parameters
-NUM_GENERATIONS = 5000
+NUM_GENERATIONS = 1
 NUM_ARMS = 5
 # Update the segments per arm to match NUM_ARMS = 2
 NUM_SEGMENTS_PER_ARM = [2, 0, 0, 2, 0]  # Now has 2 elements for 2 arms
@@ -91,7 +91,6 @@ class BrittleStarEnv(RLEnv):
         action = normalized_action * action_ranges + action_midpoints
 
         next_env_state = self.env.step(state=env_state, action=action)
-
         joint_positions = []
         for arm in range(NUM_ARMS):
             joint_positions.append(get_joint_positions(next_env_state, arm))
@@ -102,7 +101,6 @@ class BrittleStarEnv(RLEnv):
 
         distance = next_env_state.observations["xy_distance_to_target"][0]
         reward = -distance
-
         done = jnp.array(False)
 
         info = {}
@@ -142,131 +140,9 @@ class BrittleStarEnv(RLEnv):
         *args,
         **kwargs,
     ):
-        """Visualize the trained agent"""
-        assert output_type in ["rgb_array", "gif", "mp4"]
-
-        obs, env_state = self.reset(randkey)
-        reward, done = 0.0, False
-        frames = []
-
-        # Store initial distance for reporting
-        initial_distance = env_state.observations["xy_distance_to_target"][0]
-        min_distance = initial_distance
-
-        def step(key, env_state, obs):
-            key, _ = jax.random.split(key)
-
-            # Get action from neural network
-            action = act_func(state, params, obs)
-
-            # Step the environment
-            obs, env_state, r, done, info = self.step(key, env_state, action)
-            return key, env_state, obs, r, done
-
-        jit_step = jax.jit(step)
-
-        for _ in range(self.max_step):
-            # Render current frame
-            frame = self.render_fn(env_state)
-            frames.append(frame)
-
-            # Step the environment
-            randkey, env_state, obs, r, done = jit_step(randkey, env_state, obs)
-
-            # Track best distance
-            current_distance = env_state.observations["xy_distance_to_target"][0]
-            min_distance = jnp.minimum(min_distance, current_distance)
-
-            reward += r
-            if done:
-                break
-
-        # Calculate fitness metrics
-        distance_improvement = initial_distance - min_distance
-
-        print("Total reward:", reward)
-        print(f"Initial distance: {initial_distance}")
-        print(f"Minimum distance: {min_distance}")
-        print(f"Distance improvement: {distance_improvement}")
-
-        # Return frames directly for rgb_array
-        if output_type == "rgb_array":
-            return np.array(frames)
-
-        # Create and save animation
-        if save_path is None:
-            output_dir = "output_videos"
-            os.makedirs(output_dir, exist_ok=True)
-            save_path = f"{output_dir}/best_individual.{output_type}"
-
-        # Use the create_animation function to save the video
-        create_animation(frames, save_path)
-
-        # Return a dictionary with results for compatibility with other code
-        return {
-            "fitness": distance_improvement,
-            "initial_distance": initial_distance,
-            "min_distance": min_distance,
-            "distance_improvement": distance_improvement,
-            "frames": frames,
-        }
+        pass
 
 
-def eval_individual(act_func, state, params, env_state, env, rng):
-    """Evaluates a TensorNEAT individual in the brittle star environment"""
-
-    # Create observation vector by concatenating joint positions and distance to target
-
-    joint_positions = []
-    for arm in range(NUM_ARMS):
-        joint_positions.append(get_joint_positions(env_state, arm))
-
-    distance_to_target = get_distance_to_target(env_state)
-    # Ensure distance_to_target is a 1D array with shape (1,)
-    distance_to_target = jnp.reshape(distance_to_target, (1,))
-
-    # Use jnp.concatenate instead of np.concatenate
-    obs = jnp.concatenate(joint_positions + [distance_to_target])
-
-    initial_distance_to_target = env_state.observations["xy_distance_to_target"][0]
-    jax_obs = jnp.array(obs)
-
-    action = act_func(state, params, jax_obs)
-
-    #! Scale action values between joint limits
-    # Define joint limits
-    lower_bounds = jnp.array([-1.047, -0.785] * (NUM_ARMS * max(NUM_SEGMENTS_PER_ARM)))
-    upper_bounds = jnp.array([1.047, 0.785] * (NUM_ARMS * max(NUM_SEGMENTS_PER_ARM)))
-
-    # Normalize between -1 and 1
-    normalized_action = jnp.tanh(action)
-
-    action_ranges = (upper_bounds - lower_bounds) / 2
-    action_midpoints = (upper_bounds + lower_bounds) / 2
-    action = normalized_action * action_ranges + action_midpoints
-
-    joint_positions_combined = jnp.concatenate(joint_positions)
-
-    concrete_action = jax.device_get(action)
-    jax.debug.print("Action values: {}", concrete_action)
-
-    env_state = step(state=env_state, action=action)
-
-    fitness = env_state.observations["xy_distance_to_target"][0]
-    return fitness, env_state
-
-
-def create_fitness_plot(generation, avg_fitness, best_fitness):
-    """Create a plot showing fitness progress over generations"""
-    fig = plt.figure(figsize=(10, 6))
-    plt.plot(range(generation + 1), avg_fitness, "b-", label="Average Fitness")
-    plt.plot(range(generation + 1), best_fitness, "r-", label="Best Fitness")
-    plt.grid(True)
-    plt.xlabel("Generation")
-    plt.ylabel("Fitness")
-    plt.title(f"Training Progress - Generation {generation}")
-    plt.legend()
-    return fig
 
 
 def get_environment_dims(env, state):
@@ -322,7 +198,8 @@ def train_neat_controller():
     print("Initializing TensorNEAT state...")
     state = pipeline.setup()
 
-    pipeline.auto_run(state)
+    state, best_genome = pipeline.auto_run(state)
+
 
 
 def example_usage():
