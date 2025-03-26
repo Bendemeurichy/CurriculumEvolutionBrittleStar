@@ -112,11 +112,22 @@ def eval_individual(act_func, state, params, env, env_state, step):
 
     action = act_func(state, params, jax_obs)
 
-    # Replace the current debug print with this:
-    # concrete_action = jax.device_get(action)
-    # jax.debug.print("Action values: {}", concrete_action)
+    #! Scale action values between joint limits
+    # Define joint limits
+    lower_bounds = jnp.array([-1.047, -0.785] * (NUM_ARMS * max(NUM_SEGMENTS_PER_ARM)))
+    upper_bounds = jnp.array([1.047, 0.785] * (NUM_ARMS * max(NUM_SEGMENTS_PER_ARM)))
+
+    # Normalize between -1 and 1
+    normalized_action = jnp.tanh(action)
+
+    action_ranges = (upper_bounds - lower_bounds) / 2
+    action_midpoints = (upper_bounds + lower_bounds) / 2
+    action = normalized_action * action_ranges + action_midpoints
 
     
+    concrete_action = jax.device_get(action)
+    jax.debug.print("Action values: {}", concrete_action)
+
     env_state = step(state=env_state, action=action)
 
     curr_distance = env_state.observations["xy_distance_to_target"][0]
