@@ -222,38 +222,80 @@ def run_simulation(env, state, environment_configuration):
 
 
 
+def test():
+    NUM_MJX_ENVIRONMENTS = 2  # set this to the number of CUDA cores that you have available
 
+  
+
+    mjx_vectorized_env, state, environment_configuration = initialize_simulation(
+        env_type="directed_locomotion",
+        num_arms=5,
+        num_segments_per_arm=[2, 0, 0, 2, 0],
+        backend="MJX",
+    )
+
+
+    
+
+    mjx_action_rng, mjx_vectorized_env_rng = jax.random.split(jax.random.PRNGKey(0), 2)
+    mjx_vectorized_env_rng = jnp.array(jax.random.split(mjx_vectorized_env_rng, NUM_MJX_ENVIRONMENTS))
+
+    mjx_vectorized_step = jax.jit(jax.vmap(mjx_vectorized_env.step))
+    mjx_vectorized_reset = jax.jit(jax.vmap(mjx_vectorized_env.reset))
+    mjx_vectorized_action_sample = jax.jit(jax.vmap(mjx_vectorized_env.action_space.sample))
+
+    mjx_vectorized_state = mjx_vectorized_reset(rng=mjx_vectorized_env_rng)
+
+    mjx_frames = []
+    while not jnp.any(mjx_vectorized_state.terminated | mjx_vectorized_state.truncated):
+        mjx_action_rng, *sub_rngs = jnp.array(jax.random.split(mjx_action_rng, NUM_MJX_ENVIRONMENTS + 1))
+        action = mjx_vectorized_action_sample(rng=jnp.array(sub_rngs))
+
+        mjx_vectorized_state = mjx_vectorized_step(state=mjx_vectorized_state, action=action)
+        mjx_frames.append(
+                render.post_render(
+                        mjx_vectorized_env.render(state=mjx_vectorized_state), mjx_vectorized_env.environment_configuration
+                        )
+                )
+        print(mjx_vectorized_state.observations["xy_distance_to_target"][0])
+        
+    print(f"Simulation complete with {len(mjx_frames)} frames!")
+    output_dir = "./training_progress"
+    #render.save_frame_samples(mjx_frames, output_dir=output_dir, sample_rate=10)
+    video_path = f"{output_dir}/brittle_star_simulation.mp4"
+    render.create_animation(mjx_frames, output_path=video_path)
 
 if __name__ == "__main__":
 
+    test()
     # Initialize simulation
-    env, state, environment_configuration = initialize_simulation(
-        env_type="directed_locomotion",
-        num_arms=5,
-        num_segments_per_arm=[1, 0, 0, 1, 0],
-        backend="MJC",
-    )
+    # env, state, environment_configuration = initialize_simulation(
+    #     env_type="directed_locomotion",
+    #     num_arms=5,
+    #     num_segments_per_arm=[1, 0, 0, 1, 0],
+    #     backend="MJC",
+    # )
 
-    # Get initial frame and display
-    initial_frame = render.post_render(
-        env.render(state=state), environment_configuration
-    )
+    # # Get initial frame and display
+    # initial_frame = render.post_render(
+    #     env.render(state=state), environment_configuration
+    # )
 
-    render.visualize_initial_frame(initial_frame)
+    # render.visualize_initial_frame(initial_frame)
 
-    # Run full simulation
-    print("Running simulation...")
-    mjc_frames = run_simulation(env, state, environment_configuration)
-    print(f"Simulation complete with {len(mjc_frames)} frames!")
+    # # Run full simulation
+    # print("Running simulation...")
+    # mjc_frames = run_simulation(env, state, environment_configuration)
+    # print(f"Simulation complete with {len(mjc_frames)} frames!")
 
-    # Create output directory and save selected frames
-    output_dir = "simulation_output"
-    render.save_frame_samples(mjc_frames, output_dir=output_dir, sample_rate=10)
+    # # Create output directory and save selected frames
+    # output_dir = "simulation_output"
+    # render.save_frame_samples(mjc_frames, output_dir=output_dir, sample_rate=10)
 
-    # Create and save animation
-    video_path = f"{output_dir}/brittle_star_simulation.mp4"
-    render.create_animation(mjc_frames, output_path=video_path)
-    print(f"Saved animation to {video_path}")
+    # # Create and save animation
+    # video_path = f"{output_dir}/brittle_star_simulation.mp4"
+    # render.create_animation(mjc_frames, output_path=video_path)
+    # print(f"Saved animation to {video_path}")
 
-    # Play the video
-    render.play_video(video_path)
+    # # Play the video
+    # render.play_video(video_path)
