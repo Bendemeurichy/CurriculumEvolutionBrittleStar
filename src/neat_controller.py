@@ -12,6 +12,8 @@ from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.common import ACT, AGG
 import time
 import warnings
+from observations import get_distance_to_target, get_joint_positions
+import logging
 
 #  Parameters
 NUM_GENERATIONS = 50
@@ -39,8 +41,6 @@ best_distance_improvement = -float("inf")
 best_genome_per_generation = {}
 
 
-
-
 class BrittleStarProblem(BaseProblem):
     jitable = True  # necessary for tensorneat
 
@@ -59,23 +59,24 @@ class BrittleStarProblem(BaseProblem):
         self.env = env
         self.env_state = env_state
         self.environment_configuration = environment_configuration
-        
+
     def evaluate(self, state, randkey, act_func, params):
-        result,env_state = eval_individual(act_func, state, params, self.env, self.env_state, 
-            self.env.step)
+        result, env_state = eval_individual(
+            act_func, state, params, self.env, self.env_state, self.env.step
+        )
         self.env_state = env_state
-        return result 
-    
+        return result
+
     @property
     def input_shape(self):
         # Return the shape of the observation vector
         return (self._input_dims,)
-    
+
     @property
     def output_shape(self):
         # Return the shape of the action vector
         return (self._output_dims,)
-    
+
     def show(self, state, randkey, act_func, params, *args, **kwargs):
         # Showcase the performance of one individual
         result = eval_individual(act_func, state, params)
@@ -83,7 +84,7 @@ class BrittleStarProblem(BaseProblem):
         print(f"Initial distance: {result['initial_distance']}")
         print(f"Minimum distance: {result['min_distance']}")
         print(f"Distance improvement: {result['distance_improvement']}")
-        
+
         # Create and save animation if needed
         if VISUALIZE_TRAINING and "frames" in result:
             output_dir = "output_videos"
@@ -93,28 +94,34 @@ class BrittleStarProblem(BaseProblem):
 
 def eval_individual(act_func, state, params, env, env_state, step):
     """Evaluates a TensorNEAT individual in the brittle star environment"""
-    obs = np.concatenate(
-            [
-                env_state.observations["joint_position"],
-                env_state.observations["joint_velocity"],
-                env_state.observations["disk_position"],
-                env_state.observations["disk_linear_velocity"],
-                env_state.observations["unit_xy_direction_to_target"],
-                env_state.observations["xy_distance_to_target"],
-            ]
-        )
+
+    # Create observation vector by concatenating joint positions and distance to target
+    joint_positions = []
+    for arm in range(NUM_ARMS):
+        joint_positions.append(get_joint_positions(env_state, arm))
+
+    distance_to_target = get_distance_to_target(env_state)
+    # Ensure distance_to_target is a 1D array with shape (1,)
+    distance_to_target = jnp.reshape(distance_to_target, (1,))
+
+    # Use jnp.concatenate instead of np.concatenate
+    obs = jnp.concatenate(joint_positions + [distance_to_target])
 
     initial_distance_to_target = env_state.observations["xy_distance_to_target"][0]
     jax_obs = jnp.array(obs)
-    
+
     action = act_func(state, params, jax_obs)
 
+    # Replace the current debug print with this:
+    # concrete_action = jax.device_get(action)
+    # jax.debug.print("Action values: {}", concrete_action)
+
+    
     env_state = step(state=env_state, action=action)
 
     curr_distance = env_state.observations["xy_distance_to_target"][0]
 
     return initial_distance_to_target - curr_distance, env_state
-
 
 
 def create_fitness_plot(generation, avg_fitness, best_fitness):
@@ -133,14 +140,9 @@ def create_fitness_plot(generation, avg_fitness, best_fitness):
 def get_environment_dims(env, state):
     """Get the input and output dimensions from the environment"""
     # Calculate number of inputs and outputs
-    num_inputs = (
-        len(state.observations["joint_position"])
-        + len(state.observations["joint_velocity"])
-        + len(state.observations["disk_position"])
-        + len(state.observations["disk_linear_velocity"])
-        + len(state.observations["unit_xy_direction_to_target"])
-        + len(state.observations["xy_distance_to_target"])
-    )
+    num_inputs = sum(
+        [len(get_joint_positions(state, arm)) for arm in range(NUM_ARMS)]
+    ) + len(get_distance_to_target(state))
     num_outputs = len(env.action_space.sample(rng=jax.random.PRNGKey(seed=0)))
 
     return num_inputs, num_outputs
@@ -157,14 +159,13 @@ def create_animation(frames, output_path):
 def train_neat_controller():
     """Train a TensorNEAT controller for the brittle star"""
     print("Starting NEAT training for brittle star locomotion...")
-    
 
     problem = BrittleStarProblem()
     # Get input and output dimensions
-    
+
     num_inputs, num_outputs = problem._input_dims, problem._output_dims
     print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
-    
+
     pipeline = Pipeline(
         algorithm=NEAT(
             pop_size=POPULATION_SIZE,
@@ -178,30 +179,28 @@ def train_neat_controller():
                     activation_options=[ACT.tanh, ACT.relu, ACT.sigmoid],
                     aggregation_options=[AGG.sum],
                 ),
-                 output_transform=ACT.identity, 
+                output_transform=ACT.identity,
             ),
         ),
         problem=problem,
         generation_limit=NUM_GENERATIONS,
-        fitness_target=10000, # Way to high fitness, I just want to see if it works
+        fitness_target=10000,  # Way to high fitness, I just want to see if it works
         seed=42,
     )
-    
+
     print("Initializing TensorNEAT state...")
     state = pipeline.setup()
-    
-
-
 
     pipeline.auto_run(state)
-   
+
 
 def example_usage():
     """Example of how to use the framework"""
     print("TensorNEAT Brittle Star Controller")
     print("----------------------------------")
-    
+
     train_neat_controller()
+
 
 if __name__ == "__main__":
     example_usage()
