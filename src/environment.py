@@ -182,11 +182,14 @@ def initialize_simulation(
     # Initialize random number generator
     if backend == "MJC":
         rng = np.random.RandomState(0)
+        state = env.reset(rng=rng)
     else:
         rng = jax.random.PRNGKey(seed=0)
+        state = jax.jit(env.reset)(rng=rng)
+
 
     # Reset environment
-    state = env.reset(rng=rng)
+    
 
     return env, state, environment_configuration
 
@@ -218,7 +221,11 @@ def run_simulation(env, state, environment_configuration):
     return mjc_frames
 
 
+
+
+
 if __name__ == "__main__":
+
     # Initialize simulation
     env, state, environment_configuration = initialize_simulation(
         env_type="directed_locomotion",

@@ -10,6 +10,7 @@ from tensorneat.pipeline import Pipeline
 from tensorneat.algorithm.neat import NEAT
 from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.common import ACT, AGG
+import render
 import time
 import warnings
 from observations import get_distance_to_target, get_joint_positions
@@ -30,9 +31,6 @@ SUCCESS_THRESHOLD = 0.75
 POPULATION_SIZE = 100
 SPECIES_SIZE = 5
 
-# Create directories for output
-os.makedirs("training_progress", exist_ok=True)
-os.makedirs("checkpoints", exist_ok=True)
 
 best_fitness_history = []
 avg_fitness_history = []
@@ -59,14 +57,23 @@ class BrittleStarProblem(BaseProblem):
         self.env = env
         self.env_state = env_state
         self.environment_configuration = environment_configuration
+        self.render = jax.jit(env.render)
+        self.iteration = 0
+        
 
+        # Create jax array 
+        
     def evaluate(self, state, randkey, act_func, params):
-        result, env_state = eval_individual(
-            act_func, state, params, self.env, self.env_state, self.env.step
-        )
+        result,env_state = eval_individual(act_func, state, params, self.env_state, 
+            self.env.step)
         self.env_state = env_state
-        return result
 
+        self.render(env_state)
+
+        #self.states = self.states.at[self.iteration].set(env_state)
+        self.iteration += 1
+        return result 
+    
     @property
     def input_shape(self):
         # Return the shape of the observation vector
@@ -92,7 +99,7 @@ class BrittleStarProblem(BaseProblem):
             create_animation(result["frames"], f"{output_dir}/best_individual.mp4")
 
 
-def eval_individual(act_func, state, params, env, env_state, step):
+def eval_individual(act_func, state, params, env_state, step):
     """Evaluates a TensorNEAT individual in the brittle star environment"""
 
     # Create observation vector by concatenating joint positions and distance to target
@@ -132,7 +139,10 @@ def eval_individual(act_func, state, params, env, env_state, step):
 
     curr_distance = env_state.observations["xy_distance_to_target"][0]
 
-    return initial_distance_to_target - curr_distance, env_state
+
+            
+
+    return curr_distance, env_state
 
 
 def create_fitness_plot(generation, avg_fitness, best_fitness):
@@ -155,7 +165,7 @@ def get_environment_dims(env, state):
         [len(get_joint_positions(state, arm)) for arm in range(NUM_ARMS)]
     ) + len(get_distance_to_target(state))
     num_outputs = len(env.action_space.sample(rng=jax.random.PRNGKey(seed=0)))
-
+    print(num_inputs, num_outputs)
     return num_inputs, num_outputs
 
 
