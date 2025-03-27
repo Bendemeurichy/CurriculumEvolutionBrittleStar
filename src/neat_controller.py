@@ -262,12 +262,13 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     # Random key for actions
     rng_key = jax.random.PRNGKey(42)
 
+    # Should zoom camera 0
+    camera_id = 0
+    env._env._mj_model.cam_pos[camera_id] *= 0.5  # Move camera closer
+
     print("Running simulation...")
     for step in range(max_steps):
         # Render current state
-        # Should zoom camera 0
-        camera_id = 0
-        env._env._mj_model.cam_pos[camera_id] *= 0.5  # Move camera closer
         frame = env.render(env_state)
         processed_frame = render.post_render(
             render_output=frame, environment_configuration=environment_configuration
