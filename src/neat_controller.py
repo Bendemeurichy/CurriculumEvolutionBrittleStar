@@ -83,7 +83,7 @@ class BrittleStarEnv(RLEnv):
         *args,
         **kwargs,
     ):
-        super().__init__(max_step=200, *args, **kwargs)
+        super().__init__(max_step=400, *args, **kwargs)
 
         env, env_state, environment_configuration = initialize_simulation(
             env_type="directed_locomotion",
@@ -222,10 +222,6 @@ def train_neat_controller():
             state, best_genome, pipeline.algorithm, save_path=save_path
         )
 
-        visualize_brittlestar(
-            state, best_genome, pipeline.algorithm, save_path=save_path
-        )
-
     return state, best_genome
 
 
@@ -248,7 +244,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     transformed_genome = algorithm.transform(state, genome)
 
     # Set up parameters for visualization
-    max_steps = 200
+    max_steps = 400
     frames = []
 
     # Get initial observation
