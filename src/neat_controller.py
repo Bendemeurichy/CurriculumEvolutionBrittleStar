@@ -18,14 +18,13 @@ from observations import (
     get_joint_positions,
     get_direction_to_target,
 )
-import logging
 
 #  Parameters
-NUM_GENERATIONS = 1
+NUM_GENERATIONS = 10
 NUM_ARMS = 5
 # Update the segments per arm to match NUM_ARMS = 2
 NUM_SEGMENTS_PER_ARM = [2, 0, 0, 2, 0]  # Now has 2 elements for 2 arms
-SIMULATION_DURATION = 10  # seconds
+SIMULATION_DURATION = 40  # seconds
 VISUALIZE_TRAINING = True
 SAVE_BEST_EVERY_GEN = 5
 TIME_SCALE = 1
@@ -116,7 +115,7 @@ class BrittleStarEnv(RLEnv):
 
         # Calculate reward
         distance = next_env_state.observations["xy_distance_to_target"][0]
-        reward = -distance
+        reward = distance
         done = jnp.array(False)
 
         info = {}
@@ -202,8 +201,10 @@ def train_neat_controller():
         ),
         problem=problem,
         generation_limit=NUM_GENERATIONS,
-        fitness_target=10000,
+        fitness_target=1e-2,
         seed=42,
+        is_save=True,
+        save_dir="output",
     )
 
     print("Initializing TensorNEAT state...")
@@ -217,6 +218,10 @@ def train_neat_controller():
         output_dir = "output_videos"
         os.makedirs(output_dir, exist_ok=True)
         save_path = os.path.join(output_dir, "training_progress.mp4")
+        visualize_brittlestar(
+            state, best_genome, pipeline.algorithm, save_path=save_path
+        )
+
         visualize_brittlestar(
             state, best_genome, pipeline.algorithm, save_path=save_path
         )
@@ -295,6 +300,10 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
             f"Step {step}: Distance = {current_distance:.4f}, Min Distance = {min_distance:.4f}"
         )
 
+        print(
+            f"Step {step}: Distance = {current_distance:.4f}, Min Distance = {min_distance:.4f}"
+        )
+
     # Display results
     print("\n=== Visualization Results ===")
     print(f"Initial distance: {initial_distance:.4f}")
@@ -316,6 +325,12 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     create_animation(frames, save_path)
 
     return {
+        "frames": frames,
+        "fitness": initial_distance - min_distance,
+        "initial_distance": initial_distance,
+        "min_distance": min_distance,
+        "distance_improvement": initial_distance - min_distance,
+        "total_reward": total_reward,
         "frames": frames,
         "fitness": initial_distance - min_distance,
         "initial_distance": initial_distance,
