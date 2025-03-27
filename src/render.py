@@ -13,9 +13,6 @@ import os
 
 def visualize_mjcf(mjcf: MJCFRootComponent) -> None:
     model = mujoco.MjModel.from_xml_string(mjcf.get_mjcf_str())
-    camera_id = 0
-    model.cam_pos[camera_id] *= 0.5  # Halve the distance
-
     data = mujoco.MjData(model)
     renderer = mujoco.Renderer(model)
 
