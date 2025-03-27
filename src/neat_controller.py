@@ -20,7 +20,7 @@ from observations import (
 )
 
 #  Parameters
-NUM_GENERATIONS = 10
+NUM_GENERATIONS = 100
 NUM_ARMS = 5
 # Update the segments per arm to match NUM_ARMS = 2
 NUM_SEGMENTS_PER_ARM = [2, 0, 0, 2, 0]  # Now has 2 elements for 2 arms
@@ -201,7 +201,7 @@ def train_neat_controller():
         ),
         problem=problem,
         generation_limit=NUM_GENERATIONS,
-        fitness_target=1e-2,
+        fitness_target=10000,
         seed=42,
         is_save=True,
         save_dir="output",
@@ -289,14 +289,10 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         min_distance = min(float(min_distance), float(current_distance))
 
         # Update reward
-        reward = -current_distance
+        reward = current_distance
         total_reward += reward
 
         # Print progress
-        print(
-            f"Step {step}: Distance = {current_distance:.4f}, Min Distance = {min_distance:.4f}"
-        )
-
         print(
             f"Step {step}: Distance = {current_distance:.4f}, Min Distance = {min_distance:.4f}"
         )
@@ -322,12 +318,6 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     create_animation(frames, save_path)
 
     return {
-        "frames": frames,
-        "fitness": initial_distance - min_distance,
-        "initial_distance": initial_distance,
-        "min_distance": min_distance,
-        "distance_improvement": initial_distance - min_distance,
-        "total_reward": total_reward,
         "frames": frames,
         "fitness": initial_distance - min_distance,
         "initial_distance": initial_distance,
