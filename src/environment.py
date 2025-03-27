@@ -159,7 +159,7 @@ def initialize_simulation(
     )
     arena_configuration = AquariumArenaConfiguration(
         size=(10, 5),
-        sand_ground_color=True,
+        sand_ground_color=False,
         attach_target=True,
         wall_height=1.5,
         wall_thickness=0.1,
