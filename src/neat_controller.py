@@ -264,7 +264,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
     # Should zoom camera 0
     camera_id = 0
-    env._env._mj_model.cam_pos[camera_id] *= 0.5  # Move camera closer
+    env._env._mj_model.cam_pos[camera_id] *= 0.35  # Move camera closer
 
     print("Running simulation...")
     for step in range(max_steps):
