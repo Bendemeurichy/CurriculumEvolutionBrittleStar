@@ -13,12 +13,11 @@ import os
 
 def visualize_mjcf(mjcf: MJCFRootComponent) -> None:
     model = mujoco.MjModel.from_xml_string(mjcf.get_mjcf_str())
-    data = mujoco.MjData(model)
-    renderer = mujoco.Renderer(model)
-
     camera_id = 0
     model.cam_pos[camera_id] *= 0.5  # Halve the distance
-    model.cam_dist[camera_id] *= 0.5  # Halve the zoom distance
+
+    data = mujoco.MjData(model)
+    renderer = mujoco.Renderer(model)
 
     for _ in range(100):  # Simulate for 100 steps
         mujoco.mj_step(model, data)
