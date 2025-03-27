@@ -216,6 +216,9 @@ def train_neat_controller():
         print("\nTraining complete! Visualizing best individual...")
         # Make sure to provide a proper path with directory
         output_dir = "output_videos"
+        network = pipeline.algorithm.genome.network_dict(state, *best_genome)
+        pipeline.genome.visualize(network, save_path=os.path.join(output_dir, "network_pkl.svg"))
+        
         os.makedirs(output_dir, exist_ok=True)
         save_path = os.path.join(output_dir, "training_progress.mp4")
         visualize_brittlestar(
