@@ -187,3 +187,4 @@ src/training_process
 
 src/neat_example/output/log.txt
 src/neat_example/output/config.txt
+src/output/*
