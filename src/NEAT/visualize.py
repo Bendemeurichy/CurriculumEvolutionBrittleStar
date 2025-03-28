@@ -55,6 +55,8 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         simulation_time=config.SIMULATION_DURATION,
         time_scale=config.TIME_SCALE,
         target_distance=config.TARGET_DISTANCE,
+        num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
+        seed=config.SEED,
     )
 
     transformed_genome = algorithm.transform(state, genome)
@@ -87,7 +89,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         scaled_action = scale_actions(action)
 
         env_state = env.step(state=env_state, action=scaled_action)
-
+        # print(env_state.observations)
         obs = get_observation(env_state)
 
         current_distance = env_state.observations["xy_distance_to_target"][0]

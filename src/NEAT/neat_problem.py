@@ -31,27 +31,24 @@ class BrittleStarEnv(RLEnv):
             simulation_time=simulation_time,
             time_scale=time_scale,
             target_distance=target_distance,
+            num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
+            seed=config.SEED
         )
 
         self.env = env
         self.initial_env_state = env_state
         self.environment_configuration = environment_configuration
-        self.render_fn = jax.jit(env.render)
 
         self._input_dims, self._output_dims = get_environment_dims(env, env_state)
 
     def env_step(self, randkey, env_state, action):
         """Step the environment with the given action"""
-        # Scale the action
         scaled_action = scale_actions(action)
 
-        # Step the environment
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-        # Get observation
         obs = get_observation(next_env_state)
 
-        # Calculate reward
         distance = next_env_state.observations["xy_distance_to_target"][0]
         reward = distance
         done = jnp.array(False)

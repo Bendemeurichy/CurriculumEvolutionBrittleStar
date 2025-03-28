@@ -87,7 +87,7 @@ def create_example_environment(
     simulation_time: int = 5,
     time_scale: int = 2,
     target_distance: float = 3.0,
-    success_threshold: float = 0.75,  # This parameter will be used in our code, not passed to environment
+    num_physics_steps_per_control_step: int = 10,
 ) -> (
     BrittleStarUndirectedLocomotionEnvironmentConfiguration
     | BrittleStarDirectedLocomotionEnvironmentConfiguration
@@ -102,7 +102,7 @@ def create_example_environment(
             # Number of seconds per episode
             simulation_time=simulation_time,
             # Number of physics substeps to do per control step
-            num_physics_steps_per_control_step=10,
+            num_physics_steps_per_control_step=num_physics_steps_per_control_step,
             # Integer factor by which to multiply the original physics timestep of 0.002,
             time_scale=time_scale,
             # Which camera's to render (all the brittle star environments contain 2 cameras: 1 top-down camera and one close-up camera that follows the brittle star),
@@ -114,14 +114,14 @@ def create_example_environment(
         return BrittleStarDirectedLocomotionEnvironmentConfiguration(
             # Distance to put our target at (targets are spawned on a circle around the starting location with this given radius).
             target_distance=target_distance,
-            # We'll handle success_threshold in our own code
             joint_randomization_noise_scale=0.0,
             render_mode="rgb_array",
             simulation_time=simulation_time,
-            num_physics_steps_per_control_step=10,
+            num_physics_steps_per_control_step=num_physics_steps_per_control_step,
             time_scale=time_scale,
             camera_ids=[0, 1],
             render_size=(480, 640),
+            color_contacts=True
         )
     elif env_type == "light_escape":
         return BrittleStarLightEscapeEnvironmentConfiguration(
@@ -131,7 +131,7 @@ def create_example_environment(
             joint_randomization_noise_scale=0,
             render_mode="rgb_array",
             simulation_time=simulation_time,
-            num_physics_steps_per_control_step=10,
+            num_physics_steps_per_control_step=num_physics_steps_per_control_step,
             time_scale=time_scale,
             camera_ids=[0, 1],
             render_size=(480, 640),
@@ -148,7 +148,8 @@ def initialize_simulation(
     simulation_time=5,
     time_scale=2,
     target_distance=3.0,
-    success_threshold=0.75,
+    num_physics_steps_per_control_step=10,
+    seed=0,
 ):
     """Initialize the brittle star simulation environment"""
     morphology_specification = default_brittle_star_morphology_specification(
@@ -169,7 +170,7 @@ def initialize_simulation(
         simulation_time=simulation_time,
         time_scale=time_scale,
         target_distance=target_distance,
-        success_threshold=success_threshold,
+        num_physics_steps_per_control_step=num_physics_steps_per_control_step,
     )
 
     env = create_environment(
@@ -181,10 +182,10 @@ def initialize_simulation(
 
     # Initialize random number generator
     if backend == "MJC":
-        rng = np.random.RandomState(0)
+        rng = np.random.RandomState(seed)
         state = env.reset(rng=rng)
     else:
-        rng = jax.random.PRNGKey(seed=0)
+        rng = jax.random.PRNGKey(seed=seed)
         state = jax.jit(env.reset)(rng=rng)
 
 

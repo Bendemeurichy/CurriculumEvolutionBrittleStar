@@ -10,6 +10,8 @@ from tensorneat.pipeline import Pipeline
 from tensorneat.algorithm.neat import NEAT
 from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.common import ACT, AGG
+
+
 def scale_actions(actions):
     """Scale actions to match joint limits"""
     lower_bounds = jnp.array([-1.047, -0.785] * sum(config.NUM_SEGMENTS_PER_ARM))
@@ -32,6 +34,7 @@ def get_observation(env_state):
         joint_positions.append(get_joint_positions(env_state, arm))
 
     direction_to_target = get_direction_to_target(env_state)
+    print(direction_to_target)
     joint_positions_combined = jnp.concatenate(joint_positions)
     obs = jnp.concatenate([joint_positions_combined, direction_to_target])
 
@@ -69,7 +72,7 @@ def init_pipeline(problem):
         problem=problem,
         generation_limit=config.NUM_GENERATIONS,
         fitness_target=10000,
-        seed=42,
+        seed=config.SEED,
         is_save=False,
         save_dir="output",
     )
