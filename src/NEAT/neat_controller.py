@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from NEAT.observations import (
     get_joint_positions,
     get_direction_to_target,
+    get_disk_direction
 )
 import NEAT.config as config
 from tensorneat.pipeline import Pipeline
@@ -35,6 +36,7 @@ def get_observation(env_state):
 
     direction_to_target = get_direction_to_target(env_state)
     print(direction_to_target)
+    # disk_direction = get_disk_direction(env_state)
     joint_positions_combined = jnp.concatenate(joint_positions)
     obs = jnp.concatenate([joint_positions_combined, direction_to_target])
 
@@ -47,7 +49,6 @@ def get_environment_dims(env, state):
         [len(get_joint_positions(state, arm)) for arm in range(config.NUM_ARMS)]
     ) + len(get_direction_to_target(state))
     num_outputs = len(env.action_space.sample(rng=jax.random.PRNGKey(seed=0)))
-    print(num_inputs, num_outputs)
     return num_inputs, num_outputs
 
 

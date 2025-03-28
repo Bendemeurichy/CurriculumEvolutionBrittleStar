@@ -2,7 +2,7 @@
 
 
 # General simulation parameters
-NUM_GENERATIONS = 100
+NUM_GENERATIONS = 20
 NUM_ARMS = 5
 NUM_SEGMENTS_PER_ARM = [2, 0, 0, 2, 0]  # Number of segments per arm
 SIMULATION_DURATION = 40  # Simulation duration in seconds
@@ -21,4 +21,4 @@ NUM_PHYSICS_STEPS_PER_CONTROL_STEP=10 # How many physics steps per action
 POPULATION_SIZE = 100  # Population size for NEAT
 SPECIES_SIZE = 5  # Number of species in the population
 
-SEED=42
+SEED=44

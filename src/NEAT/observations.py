@@ -41,7 +41,9 @@ def get_distance_to_target(env_state: MJXEnvState) -> jnp.ndarray:
 
 def get_direction_to_target(env_state: MJXEnvState) -> jnp.ndarray:
     # is only available in XY plane -> calculate angle
-    return env_state.observations["unit_xy_direction_to_target"]
+    x, y = env_state.observations["unit_xy_direction_to_target"]
+    # 
+    return jnp.array([jnp.arctan2(y, x), env_state.observations["disk_rotation"][2] - jnp.pi/2])
     
     # NO key "direction_to_target" in observations
     x, y = env_state.observations["direction_to_target"]
