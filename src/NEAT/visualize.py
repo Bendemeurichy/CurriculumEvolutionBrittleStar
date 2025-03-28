@@ -31,6 +31,20 @@ def load_model(model_path):
     return model
 
 
+def visualize_neural_network(model_path, save_path=None):
+
+    if save_path is None:
+        output_dir = "output_videos"
+        os.makedirs(output_dir, exist_ok=True)
+        save_path = os.path.join(output_dir, "brittle_star_neural_network.svg")
+
+    genome = load_model(model_path)
+    problem = BrittleStarEnv()
+    pipeline = init_pipeline(problem)
+    state = pipeline.setup()
+    network = pipeline.algorithm.genome.network_dict(state, *genome)
+    pipeline.algorithm.genome.visualize(network, save_path=save_path)
+
 def visualize_model(model_path, save_path=None):
 
     genome = load_model(model_path)
@@ -88,6 +102,8 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
         scaled_action = scale_actions(action)
 
+        print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
+
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
         obs = get_observation(env_state)
@@ -136,3 +152,4 @@ if __name__ == "__main__":
     model_path = os.path.join(os.path.dirname(__file__), "../models", "best_genome.pkl")
 
     visualize_model(model_path=model_path)
+    #visualize_neural_network(model_path=model_path)

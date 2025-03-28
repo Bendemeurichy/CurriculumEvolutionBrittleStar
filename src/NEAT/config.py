@@ -11,7 +11,7 @@ MAX_STEPS_TRAINING = 400  # Maximum steps for training
 MAX_STEPS_VISUALIZATION = 400  # Maximum steps for visualization
 
 TIME_SCALE = 2  # Time scale for simulation
-TARGET_DISTANCE = 4.0  # Target distance for locomotion
+TARGET_DISTANCE = 3.0  # Target distance for locomotion
 
 # Visualization and saving
 VISUALIZE_TRAINING = True  # Whether to visualize training
@@ -21,4 +21,4 @@ NUM_PHYSICS_STEPS_PER_CONTROL_STEP=10 # How many physics steps per action
 POPULATION_SIZE = 100  # Population size for NEAT
 SPECIES_SIZE = 5  # Number of species in the population
 
-SEED=44
+SEED=50

@@ -8,6 +8,8 @@ from NEAT.neat_controller import scale_actions, get_observation, get_environment
 import NEAT.config as config 
 
 
+counter = 0
+
 class BrittleStarEnv(RLEnv):
     jitable = True
 
@@ -59,7 +61,14 @@ class BrittleStarEnv(RLEnv):
 
     def env_reset(self, randkey):
         """Reset the environment"""
+        #env_state = self.env.reset(rng=randkey)
         env_state = self.initial_env_state
+
+        # target_id = env_state.mj_model.body("target").id
+        # target = env_state.mjx_data.xpos[target_id]
+        # jax.debug.print("({}, {}) {}", target[0], target[1], counter)
+
+
         obs = get_observation(env_state)
         return obs, env_state
 

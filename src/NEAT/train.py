@@ -36,6 +36,7 @@ def train_neat_controller():
     if best_genome is not None:
         save_genome(best_genome, output_dir="./models")
 
+
     return state, best_genome
 
 

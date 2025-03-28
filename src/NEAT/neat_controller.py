@@ -35,7 +35,7 @@ def get_observation(env_state):
         joint_positions.append(get_joint_positions(env_state, arm))
 
     direction_to_target = get_direction_to_target(env_state)
-    print(direction_to_target)
+    #print(direction_to_target,env_state.observations["disk_rotation"])
     # disk_direction = get_disk_direction(env_state)
     joint_positions_combined = jnp.concatenate(joint_positions)
     obs = jnp.concatenate([joint_positions_combined, direction_to_target])
