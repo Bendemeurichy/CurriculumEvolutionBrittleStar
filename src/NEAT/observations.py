@@ -20,27 +20,22 @@ def observe(env_state: MJXEnvState) -> dict:
 
 
 def get_disk_position(env_state: MJXEnvState) -> jnp.ndarray:
-    # return x, y position
     return env_state.observations["disk_position"][:2]
 
 
 def get_disk_direction(env_state: MJXEnvState) -> jnp.ndarray:
-    # return z direction
     return env_state.observations["disk_rotation"][2]
 
 
 def get_disk_velocity(env_state: MJXEnvState) -> jnp.ndarray:
-    # return x, y velocity
     return env_state.observations["disk_linear_velocity"][:2]
 
 
 def get_disk_angular_velocity(env_state: MJXEnvState) -> jnp.ndarray:
-    # return angular velocity in z direction
     return env_state.observations["disk_angular_velocity"][2]
 
 
 def get_distance_to_target(env_state: MJXEnvState) -> jnp.ndarray:
-    # is only available as a scalar
     return env_state.observations["xy_distance_to_target"]
 
 
