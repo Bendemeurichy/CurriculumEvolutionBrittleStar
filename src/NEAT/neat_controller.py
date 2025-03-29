@@ -54,6 +54,9 @@ def get_environment_dims(env, state):
 
 def init_pipeline(problem):
     num_inputs, num_outputs = problem._input_dims, problem._output_dims
+
+    max_nodes = max(50, num_inputs * num_outputs * 2)
+    max_connections = max_nodes * 2
     return Pipeline(
         algorithm=NEAT(
             pop_size=config.POPULATION_SIZE,
@@ -61,6 +64,8 @@ def init_pipeline(problem):
             survival_threshold=0.2,
             genome=DefaultGenome(
                 num_inputs=num_inputs,
+                max_nodes= max_nodes,
+                max_conns=max_connections,
                 num_outputs=num_outputs,
                 init_hidden_layers=(),
                 node_gene=BiasNode(

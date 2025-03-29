@@ -28,13 +28,11 @@ from biorobot.brittle_star.environment.directed_locomotion.dual import (
 from biorobot.brittle_star.environment.light_escape.dual import (
     BrittleStarLightEscapeEnvironment,
 )
-from biorobot.brittle_star.mjcf.morphology.specification.default import (
-    default_brittle_star_morphology_specification,
-)
+
 import jax
 from morphology import create_morphology
 import mediapy as media
-
+from morphology import default_brittle_star_morphology_specification
 import render
 
 
@@ -121,7 +119,7 @@ def create_example_environment(
             time_scale=time_scale,
             camera_ids=[0, 1],
             render_size=(480, 640),
-            color_contacts=True
+            color_contacts=False
         )
     elif env_type == "light_escape":
         return BrittleStarLightEscapeEnvironmentConfiguration(
@@ -158,6 +156,7 @@ def initialize_simulation(
         use_p_control=True,
         use_torque_control=False,
     )
+
     arena_configuration = AquariumArenaConfiguration(
         size=(10, 5),
         sand_ground_color=False,
@@ -262,36 +261,40 @@ def test():
         
     print(f"Simulation complete with {len(mjx_frames)} frames!")
     output_dir = "./training_progress"
+
+
     #render.save_frame_samples(mjx_frames, output_dir=output_dir, sample_rate=10)
-    video_path = f"{output_dir}/brittle_star_simulation.mp4"
-    render.create_animation(mjx_frames, output_path=video_path)
+    # video_path = f"{output_dir}/brittle_star_simulation.mp4"
+    # render.create_animation(mjx_frames, output_path=video_path)
 
 if __name__ == "__main__":
 
-    test()
+    #test()
     # Initialize simulation
-    # env, state, environment_configuration = initialize_simulation(
-    #     env_type="directed_locomotion",
-    #     num_arms=5,
-    #     num_segments_per_arm=[1, 0, 0, 1, 0],
-    #     backend="MJC",
-    # )
+    env, state, environment_configuration = initialize_simulation(
+        env_type="directed_locomotion",
+        num_arms=5,
+        num_segments_per_arm=4,
+        backend="MJC",
+    )
+    env._env._mj_model.cam_pos[0] *= 0.35  
 
-    # # Get initial frame and display
-    # initial_frame = render.post_render(
-    #     env.render(state=state), environment_configuration
-    # )
+    # Get initial frame and display
+    initial_frame = render.post_render(
+        env.render(state=state), environment_configuration
+    )
 
-    # render.visualize_initial_frame(initial_frame)
+    render.visualize_initial_frame(initial_frame)
 
-    # # Run full simulation
-    # print("Running simulation...")
-    # mjc_frames = run_simulation(env, state, environment_configuration)
-    # print(f"Simulation complete with {len(mjc_frames)} frames!")
+    # Run full simulation
+    print("Running simulation...")
+    mjc_frames = run_simulation(env, state, environment_configuration)
+    print(f"Simulation complete with {len(mjc_frames)} frames!")
 
-    # # Create output directory and save selected frames
-    # output_dir = "simulation_output"
-    # render.save_frame_samples(mjc_frames, output_dir=output_dir, sample_rate=10)
+    # Create output directory and save selected frames
+    output_dir = "simulation_output"
+    #render.save_frame_samples(mjc_frames, output_dir=output_dir, sample_rate=10)
+    render.visualize_initial_frame(mjc_frames[0])
 
     # # Create and save animation
     # video_path = f"{output_dir}/brittle_star_simulation.mp4"
