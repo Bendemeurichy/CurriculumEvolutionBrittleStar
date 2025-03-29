@@ -19,7 +19,7 @@ NUM_PHYSICS_STEPS_PER_CONTROL_STEP=10 # How many physics steps per action
 
 # NEAT algorithm parameters
 POPULATION_SIZE = 100  # Population size for NEAT
-SPECIES_SIZE = 5  # Number of species in the population
+SPECIES_SIZE = 10  # Number of species in the population
 
 SEED=50
 
