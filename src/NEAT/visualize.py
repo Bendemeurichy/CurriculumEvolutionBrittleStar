@@ -72,7 +72,10 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
         seed=config.SEED,
     )
-
+    if config.TARGET_POSITION is not None:
+        env_state = env.reset(rng=env_state.rng, target_position=config.TARGET_POSITION)
+    
+    
     transformed_genome = algorithm.transform(state, genome)
 
     max_steps = config.MAX_STEPS_VISUALIZATION
@@ -84,7 +87,8 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     min_distance = initial_distance
     total_reward = 0.0
 
-    rng_key = jax.random.PRNGKey(42)
+    
+    
 
     camera_id = 0
     env._env._mj_model.cam_pos[camera_id] *= 0.35  
@@ -97,12 +101,14 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         )
         frames.append(processed_frame)
 
-        rng_key, subkey = jax.random.split(rng_key)
         action = algorithm.forward(state, transformed_genome, obs)
 
         scaled_action = scale_actions(action)
 
-        print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
+        #print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
+        # target_id = env_state.mj_model.body("target").id
+        # target = env_state.mj_data.xpos[target_id]
+        # jax.debug.print("({}, {})", target[0], target[1])
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
@@ -149,7 +155,8 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 if __name__ == "__main__":
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models", "best_genome.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_3_seg.pkl")
 
     visualize_model(model_path=model_path)
     #visualize_neural_network(model_path=model_path)
+    
