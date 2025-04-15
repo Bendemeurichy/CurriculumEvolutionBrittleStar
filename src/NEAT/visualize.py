@@ -7,7 +7,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 from neat_controller import scale_actions, get_observation
 import NEAT.config as config
 from environment import initialize_simulation
-import jax 
 import render
 import pickle
 from NEAT.neat_controller import init_pipeline
@@ -155,7 +154,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 if __name__ == "__main__":
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_3_seg.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_1_seg.pkl")
 
     visualize_model(model_path=model_path)
     #visualize_neural_network(model_path=model_path)

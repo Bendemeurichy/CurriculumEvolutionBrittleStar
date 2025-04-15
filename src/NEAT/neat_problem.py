@@ -2,11 +2,11 @@
 from environment import initialize_simulation
 import jax
 import jax.numpy as jnp
-from tensorneat.problem.rl.rl_jit import RLEnv
+# from tensorneat.problem.rl.rl_jit import RLEnv
 from NEAT.neat_controller import scale_actions, get_observation, get_environment_dims
 
 import NEAT.config as config 
-
+from NEAT.RLEnv import RLEnv
 
 counter = 0
 
@@ -64,13 +64,15 @@ class BrittleStarEnv(RLEnv):
     def env_reset(self, randkey):
         """Reset the environment"""
         #env_state = self.env.reset(rng=randkey)
-        env_state = self.initial_env_state
+        #env_state = self.initial_env_state # Always train with the same target. 
         if config.TARGET_POSITION is not None:
             env_state = self.env.reset(rng=randkey, target_position=config.TARGET_POSITION)
+        else:
+            env_state = self.env.reset(rng=randkey)
 
-        # target_id = env_state.mj_model.body("target").id
-        # target = env_state.mjx_data.xpos[target_id]
-        # jax.debug.print("({}, {})", target[0], target[1])
+        target_id = env_state.mj_model.body("target").id
+        target = env_state.mjx_data.xpos[target_id]
+        jax.debug.print("({}, {})", target[0], target[1])
 
 
         obs = get_observation(env_state)
