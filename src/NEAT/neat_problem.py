@@ -1,4 +1,3 @@
-
 from environment import initialize_simulation
 import jax
 import jax.numpy as jnp
@@ -53,9 +52,22 @@ class BrittleStarEnv(RLEnv):
         obs = get_observation(next_env_state)
 
         distance = next_env_state.observations["xy_distance_to_target"][0]
-
-        reward = -distance # don't remove the '-' here cuz we want to minimize the distance. 
-                           # The reason why it 'worked' without the - is bcs visulization & training uses different targets and it happend to be about the other side of the circle I think
+        
+        # Get the previous distance for progress calculation
+        prev_distance = env_state.observations["xy_distance_to_target"][0]
+        
+        # Calculate progress toward target (positive when getting closer)
+        progress = prev_distance - distance
+        
+        # Calculate total movement (to prevent staying still)
+        disk_velocity = jnp.linalg.norm(next_env_state.observations["disk_linear_velocity"][:2])
+        
+        # Combined reward: distance penalty + progress reward + small movement incentive
+        reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2
+        
+        # Bonus reward for getting very close to target
+        reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
+        
         done = jnp.array(distance < 0.1)
 
         info = {}
@@ -64,17 +76,15 @@ class BrittleStarEnv(RLEnv):
 
     def env_reset(self, randkey):
         """Reset the environment"""
-        #env_state = self.env.reset(rng=randkey)
-        #env_state = self.initial_env_state # Always train with the same target. 
+        # Generate new randkey for target placement
+        target_key = jax.random.fold_in(randkey, 0)
+        
         if config.TARGET_POSITION is not None:
             env_state = self.env.reset(rng=randkey, target_position=config.TARGET_POSITION)
         else:
-            env_state = self.env.reset(rng=randkey)
-
-        # target_id = env_state.mj_model.body("target").id
-        # target = env_state.mjx_data.xpos[target_id]
-        # jax.debug.print("({}, {})", target[0], target[1])
-
+            # Reset with random target position
+            env_state = self.env.reset(rng=target_key)
+            
 
         obs = get_observation(env_state)
         return obs, env_state

@@ -1,4 +1,3 @@
-
 import jax
 import jax.numpy as jnp
 from NEAT.observations import (
@@ -36,19 +35,35 @@ def get_observation(env_state):
 
     direction_to_target = get_direction_to_target(env_state)
     
-    #print(direction_to_target,env_state.observations["disk_rotation"])
-    disk_direction = get_disk_direction(env_state)
+    # Add distance to target as observation
+    distance_to_target = env_state.observations["xy_distance_to_target"]
+    
+    # Add normalized vector to target (gives x,y direction)
+    target_vector = env_state.observations["unit_xy_direction_to_target"]
+    
+    # Add disk velocity
+    disk_velocity = env_state.observations["disk_linear_velocity"][:2]
     
     joint_positions_combined = jnp.concatenate(joint_positions)
-    obs = jnp.concatenate([joint_positions_combined, direction_to_target])
+    
+    # Combine all observations
+    obs = jnp.concatenate([
+        joint_positions_combined, 
+        direction_to_target,
+        #distance_to_target,
+        #target_vector,
+        #disk_velocity
+    ])
+    
     return obs
 
 def get_environment_dims(env, state):
     """Get the input and output dimensions from the environment"""
     # Calculate number of inputs and outputs
-    num_inputs = sum(
-        [len(get_joint_positions(state, arm)) for arm in range(config.NUM_ARMS)]
-    ) + len(get_direction_to_target(state))
+    num_inputs = len(get_observation(state))
+    # num_inputs = sum(
+    #     [len(get_joint_positions(state, arm)) for arm in range(config.NUM_ARMS)]
+    # ) + len(get_direction_to_target(state)) + 1 + 2 + 2  # angle + distance + vector + velocity
     num_outputs = len(env.action_space.sample(rng=jax.random.PRNGKey(seed=0)))
     return num_inputs, num_outputs
 

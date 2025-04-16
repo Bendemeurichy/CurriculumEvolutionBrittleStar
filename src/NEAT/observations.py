@@ -21,10 +21,12 @@ def observe(env_state: MJXEnvState) -> dict:
 
 
 def get_disk_position(env_state: MJXEnvState) -> jnp.ndarray:
+    # We can use the observations directly as they should be correctly configured
     return env_state.observations["disk_position"][:2]
 
 
 def get_disk_direction(env_state: MJXEnvState) -> jnp.ndarray:
+    # Using the observation directly instead of body lookup
     return env_state.observations["disk_rotation"][2]
 
 
