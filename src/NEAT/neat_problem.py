@@ -53,9 +53,10 @@ class BrittleStarEnv(RLEnv):
         obs = get_observation(next_env_state)
 
         distance = next_env_state.observations["xy_distance_to_target"][0]
+
         reward = -distance # don't remove the '-' here cuz we want to minimize the distance. 
                            # The reason why it 'worked' without the - is bcs visulization & training uses different targets and it happend to be about the other side of the circle I think
-        done = jnp.array(False)
+        done = jnp.array(distance < 0.1)
 
         info = {}
 
@@ -70,9 +71,9 @@ class BrittleStarEnv(RLEnv):
         else:
             env_state = self.env.reset(rng=randkey)
 
-        target_id = env_state.mj_model.body("target").id
-        target = env_state.mjx_data.xpos[target_id]
-        jax.debug.print("({}, {})", target[0], target[1])
+        # target_id = env_state.mj_model.body("target").id
+        # target = env_state.mjx_data.xpos[target_id]
+        # jax.debug.print("({}, {})", target[0], target[1])
 
 
         obs = get_observation(env_state)

@@ -113,6 +113,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         # print(env_state.observations)
         obs = get_observation(env_state)
 
+
         current_distance = env_state.observations["xy_distance_to_target"][0]
         min_distance = min(float(min_distance), float(current_distance))
 
@@ -154,7 +155,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 if __name__ == "__main__":
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_1_seg.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_2_seg_rand.pkl")
 
     visualize_model(model_path=model_path)
     #visualize_neural_network(model_path=model_path)

@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 from moojoco.environment.mjx_env import MJXEnvState
+import jax
 
 # ! axis orientation is X,Y = horizontal, depth, Z = vertical
 
@@ -39,11 +40,23 @@ def get_distance_to_target(env_state: MJXEnvState) -> jnp.ndarray:
     return env_state.observations["xy_distance_to_target"]
 
 
+
 def get_direction_to_target(env_state: MJXEnvState) -> jnp.ndarray:
     # is only available in XY plane -> calculate angle
-    x, y = env_state.observations["unit_xy_direction_to_target"]
-    # 
-    return jnp.array([ x, y, env_state.observations["disk_rotation"][2] ])
+    # Get unit vector pointing to target
+    target_direction_x, target_direction_y = env_state.observations["unit_xy_direction_to_target"]
+    
+    # Get disk's facing direction (assuming this is the direction the brittlestar is facing)
+    disk_angle = env_state.observations["disk_rotation"][2]
+    
+    # Calculate the target angle in world space
+    target_angle = jnp.arctan2(target_direction_y, target_direction_x)
+    
+    # Calculate the angle difference (between -pi and pi)
+    # This gives the relative angle between facing direction and target direction
+    angle_diff = jnp.mod(target_angle - disk_angle + jnp.pi, 2 * jnp.pi) - jnp.pi
+    
+    return  jnp.array([angle_diff])
     
     # NO key "direction_to_target" in observations
     x, y = env_state.observations["direction_to_target"]
