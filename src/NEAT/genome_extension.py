@@ -56,7 +56,7 @@ def extend_genome(
 
             attributes = [
                 new_idx,  # Node ID
-                np.random.normal(0, 0.1),  # bias
+                np.random.normal(0, 0.5),  # bias
                 0,  # aggregation function
                 np.random.randint(0, 3),  # activation (random from 0 to 2)
             ]
@@ -68,7 +68,7 @@ def extend_genome(
 
             attributes = [
                 new_idx,  # Node ID
-                np.random.normal(0, 0.1),  # bias
+                np.random.normal(0, 0.5),  # bias
                 0,  # aggregation function
                 np.random.randint(0, 3),  # activation (random from 0 to 2)
             ]
@@ -76,10 +76,35 @@ def extend_genome(
             new_output_idx.add(new_idx)
 
         # add connections from the new inputs to all the not input nodes
-        #TODO
+        for i in new_input_idx:
+            for j in range(all_nodes[instance].shape[0]):
+                if (
+                    all_nodes[instance][j, 0] not in new_input_idx
+                    and all_nodes[instance][j, 0]
+                    not in pipeline.algorithm.genome.input_idx
+                ):
+                    attributes = [
+                        i,  # input node
+                        all_nodes[instance][j, 0],  # output node
+                        np.random.uniform(-1, 1),  # weight
+                    ]
+                    all_conns[instance] = add_conn(all_conns[instance], attributes)
+
         # add connections from all nodes to the new outputs
-        #TODO
-        
+        for i in new_output_idx:
+            for j in range(all_nodes[instance].shape[0]):
+                if (
+                    all_nodes[instance][j, 0] not in new_output_idx
+                    and all_nodes[instance][j, 0]
+                    not in pipeline.algorithm.genome.output_idx
+                ):
+                    attributes = [
+                        all_nodes[instance][j, 0],  # input node
+                        i,  # output node
+                        np.random.uniform(-1, 1),  # weight
+                    ]
+                    all_conns[instance] = add_conn(all_conns[instance], attributes)
+
     pipeline.algorithm.genome.input_idx = jnp.concatenate(
         [pipeline.algorithm.genome.input_idx, jnp.array(list(new_input_idx))]
     )
