@@ -45,12 +45,20 @@ def extend_genome(
     pop = pipeline.algorithm.ask(state)  # Retrieve population
     all_nodes = pop[0]
     all_conns = pop[1]
-    new_input_idx = set()
-    new_output_idx = set()
 
-    # TODO: Modify the genome to add extra inputs and outputs
+    # Reconstruct input_idx and output_idx of smaller genome
+    input_idx = pipeline.algorithm.genome.input_idx
+    output_idx = pipeline.algorithm.genome.output_idx
+    input_idx = [i for i in range(len(input_idx) - extra_inputs)]
+    output_idx = [i for i in range(len(output_idx) - extra_outputs)]
+
+    new_input_idx = set(input_idx)
+    new_output_idx = set(output_idx)
+
     for instance in range(all_nodes.shape[0]):
         all_nodes[instance] = nodes
+        all_conns[instance] = conns
+        # Add extra inputs and outputs to the genome
         for _ in range(extra_inputs):
             new_idx = all_nodes[instance].shape[0]
 
@@ -105,61 +113,11 @@ def extend_genome(
                     ]
                     all_conns[instance] = add_conn(all_conns[instance], attributes)
 
-    pipeline.algorithm.genome.input_idx = jnp.concatenate(
-        [pipeline.algorithm.genome.input_idx, jnp.array(list(new_input_idx))]
-    )
-    pipeline.algorithm.genome.output_idx = jnp.concatenate(
-        [pipeline.algorithm.genome.output_idx, jnp.array(list(new_output_idx))]
-    )
-    pipeline.algorithm.genome.num_inputs += extra_inputs
-    pipeline.algorithm.genome.num_outputs += extra_outputs
+    # Weird hack because pipeline is already configured for larger genome
+    pipeline.algorithm.genome.input_idx = jnp.array(list(new_input_idx))
+    pipeline.algorithm.genome.output_idx = jnp.array(list(new_output_idx))
 
     pop = all_nodes, all_conns
     state = pipeline.algorithm.tell(state, pop)  # Update state with population
 
     return pipeline, state
-
-
-problem = BrittleStarEnv()  # Use the new RLEnv-based class
-# Get input and output dimensions
-num_inputs, num_outputs = problem._input_dims, problem._output_dims
-print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
-
-pipeline = init_pipeline(problem)
-
-print("Initializing TensorNEAT state...")
-state = pipeline.setup()
-
-genome = load_model("./models/best_genome.pkl")
-
-
-print(f"shape of nodes: {genome[0].shape}")
-print(f"shape of conns: {genome[1].shape}")
-
-# Print the nodes and connections arrays
-nodes, conns = genome
-
-
-nodes = jnp.array(nodes)
-conns = jnp.array(conns)
-
-print("representation?")
-print(pipeline.algorithm.genome.repr(state, nodes, conns))
-
-# drop nans
-nodes = nodes[~jnp.isnan(nodes).any(axis=1)]
-conns = conns[~jnp.isnan(conns).any(axis=1)]
-
-
-print("Nodes:\n", nodes)
-print("Connections:\n", conns)
-
-
-# count number of nodes with 4th value == 0 , 1 and 2
-num_inputs = jnp.sum(nodes[:, 3] == 0)
-num_outputs = jnp.sum(nodes[:, 3] == 2)
-num_hidden = jnp.sum(nodes[:, 3] == 1)
-print("Number of inputs:", num_inputs)
-print("Number of outputs:", num_outputs)
-print("Number of hidden nodes:", num_hidden)
-print(pipeline.algorithm.genome.input_idx)
