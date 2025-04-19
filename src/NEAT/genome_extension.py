@@ -39,8 +39,9 @@ def extend_genome(
     Returns:
         State: The new state object with the extended genome.
     """
-    old_output_start = pipeline.algorithm.genome.output_idx[0] - extra_outputs
-    new_output_start = old_output_start + extra_outputs
+    old_output_start = pipeline.algorithm.genome.output_idx[0] - extra_inputs
+    new_output_start = old_output_start + extra_inputs
+    output_amount = len(pipeline.algorithm.genome.output_idx)
 
     nodes, conns = shift_index_outputs(
         genome[0], genome[1], old_output_start, new_output_start
@@ -53,6 +54,24 @@ def extend_genome(
     for instance in range(len(all_nodes)):
         all_nodes[instance] = nodes
         # TODO ADD THE NEW INPUTS AND OUTPUTS TO THE GENOME
+        for i in range(extra_inputs, 0, -1):
+            new_idx = new_output_start - i
+            attributes = [
+                new_idx,  # Node ID
+                np.random.normal(0, 0.5),  # bias
+                0,  # aggregation function
+                np.random.randint(0, 3),  # activation (random from 0 to 2)
+            ]
+            all_nodes[instance] = add_node(all_nodes[instance], attributes)
+        for i in range(extra_outputs):
+            new_idx = new_output_start + output_amount + i
+            attributes = [
+                new_idx,  # Node ID
+                np.random.normal(0, 0.5),  # bias
+                0,  # aggregation function
+                np.random.randint(0, 3),  # activation (random from 0 to 2)
+            ]
+            all_nodes[instance] = add_node(all_nodes[instance], attributes)
 
     for instance in range(len(all_conns)):
         all_conns[instance] = conns
@@ -80,10 +99,14 @@ def shift_index_outputs(nodes, connections, old_output_start, new_output_start):
 
     # Shift output indices upwards
     for i in range(old_output_start, nodes.shape[0]):
+        if nodes[i, 0] == jnp.nan:
+            break
         nodes[i, 0] += diff
 
     # Shift connection indices
     for i in range(connections.shape[0]):
+        if connections[i, 0] == jnp.nan:
+            break
         if connections[i, 1] >= old_output_start:
             connections[i, 1] += diff
         if connections[i, 0] >= old_output_start:
