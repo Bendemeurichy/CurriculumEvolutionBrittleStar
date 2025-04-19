@@ -39,85 +39,53 @@ def extend_genome(
     Returns:
         State: The new state object with the extended genome.
     """
+    old_output_start = pipeline.algorithm.genome.output_idx[0] - extra_outputs
+    new_output_start = old_output_start + extra_outputs
 
-    nodes, conns = copy.deepcopy(genome)  # Unpack the genome tuple
+    nodes, conns = shift_index_outputs(
+        genome[0], genome[1], old_output_start, new_output_start
+    )
 
     pop = pipeline.algorithm.ask(state)  # Retrieve population
     all_nodes = pop[0]
     all_conns = pop[1]
 
-    # Reconstruct input_idx and output_idx of smaller genome
-    input_idx = pipeline.algorithm.genome.input_idx
-    output_idx = pipeline.algorithm.genome.output_idx
-    input_idx = [i for i in range(len(input_idx) - extra_inputs)]
-    output_idx = [i for i in range(len(output_idx) - extra_outputs)]
-
-    new_input_idx = set(input_idx)
-    new_output_idx = set(output_idx)
-
-    for instance in range(all_nodes.shape[0]):
+    for instance in range(len(all_nodes)):
         all_nodes[instance] = nodes
+        # TODO ADD THE NEW INPUTS AND OUTPUTS TO THE GENOME
+
+    for instance in range(len(all_conns)):
         all_conns[instance] = conns
-        # Add extra inputs and outputs to the genome
-        for _ in range(extra_inputs):
-            new_idx = all_nodes[instance].shape[0]
-
-            attributes = [
-                new_idx,  # Node ID
-                np.random.normal(0, 0.5),  # bias
-                0,  # aggregation function
-                np.random.randint(0, 3),  # activation (random from 0 to 2)
-            ]
-            all_nodes[instance] = add_node(all_nodes[instance], attributes)
-            new_input_idx.add(new_idx)
-
-        for _ in range(extra_outputs):
-            new_idx = all_nodes[instance].shape[0]
-
-            attributes = [
-                new_idx,  # Node ID
-                np.random.normal(0, 0.5),  # bias
-                0,  # aggregation function
-                np.random.randint(0, 3),  # activation (random from 0 to 2)
-            ]
-            all_nodes[instance] = add_node(all_nodes[instance], attributes)
-            new_output_idx.add(new_idx)
-
-        # add connections from the new inputs to all the not input nodes
-        for i in new_input_idx:
-            for j in range(all_nodes[instance].shape[0]):
-                if (
-                    all_nodes[instance][j, 0] not in new_input_idx
-                    and all_nodes[instance][j, 0]
-                    not in pipeline.algorithm.genome.input_idx
-                ):
-                    attributes = [
-                        i,  # input node
-                        all_nodes[instance][j, 0],  # output node
-                        np.random.uniform(-1, 1),  # weight
-                    ]
-                    all_conns[instance] = add_conn(all_conns[instance], attributes)
-
-        # add connections from all nodes to the new outputs
-        for i in new_output_idx:
-            for j in range(all_nodes[instance].shape[0]):
-                if (
-                    all_nodes[instance][j, 0] not in new_output_idx
-                    and all_nodes[instance][j, 0]
-                    not in pipeline.algorithm.genome.output_idx
-                ):
-                    attributes = [
-                        all_nodes[instance][j, 0],  # input node
-                        i,  # output node
-                        np.random.uniform(-1, 1),  # weight
-                    ]
-                    all_conns[instance] = add_conn(all_conns[instance], attributes)
-
-    # Weird hack because pipeline is already configured for larger genome
-    pipeline.algorithm.genome.input_idx = jnp.array(list(new_input_idx))
-    pipeline.algorithm.genome.output_idx = jnp.array(list(new_output_idx))
+        # TODO CONNECTIONS FROM NEW INPUTS TO ALL NON-INPUT NODES AND FROM NON-OUTPUT NODES TO NEW OUTPUTS
 
     pop = all_nodes, all_conns
     state = pipeline.algorithm.tell(state, pop)  # Update state with population
 
     return pipeline, state
+
+
+def shift_index_outputs(nodes, connections, old_output_start, new_output_start):
+    """Shift the index of the output nodes in the genome to match the new output start index.
+        Do the same for the connections.
+    Args:
+        nodes (np.ndarray): The nodes of the genome.
+        connections (np.ndarray): The connections of the genome.
+        old_output_start (int): The old output start index.
+        new_output_start (int): The new output start index.
+
+    Returns:
+        np.ndarray: The updated nodes and connections with shifted output indices.
+    """
+    diff = new_output_start - old_output_start
+
+    # Shift output indices upwards
+    for i in range(old_output_start, nodes.shape[0]):
+        nodes[i, 0] += diff
+
+    # Shift connection indices
+    for i in range(connections.shape[0]):
+        if connections[i, 1] >= old_output_start:
+            connections[i, 1] += diff
+        if connections[i, 0] >= old_output_start:
+            connections[i, 0] += diff
+    return nodes, connections
