@@ -48,7 +48,6 @@ def extend_genome(
 
     for instance in range(len(all_nodes)):
         all_nodes[instance] = nodes
-        # TODO ADD THE NEW INPUTS AND OUTPUTS TO THE GENOME
         for i in range(extra_inputs, 0, -1):
             new_idx = new_output_start - i
             key, subkey = jax.random.split(key)
