@@ -123,32 +123,39 @@ def extend_genome(
     return pipeline, state
 
 
-def shift_index_outputs(nodes, connections, old_output_start, new_output_start):
-    """Shift the index of the output nodes in the genome to match the new output start index.
-        Do the same for the connections.
+def shift_index_outputs(
+    nodes: jnp.ndarray,
+    connections: jnp.ndarray,
+    old_output_start: int,
+    new_output_start: int,
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """
+    Shift the indices of nodes and connections in the genome to accommodate new inputs and outputs.
+    Use JAX style programming to optimize the process.
+
     Args:
-        nodes (np.ndarray): The nodes of the genome.
-        connections (np.ndarray): The connections of the genome.
-        old_output_start (int): The old output start index.
-        new_output_start (int): The new output start index.
+        nodes jnp.ndarray: nodes that need to be shifted
+        connections jnp.ndarray: connections that need to be shifted
+        old_output_start int: index of the first output node
+        new_output_start int: index of the first new output node
 
     Returns:
-        np.ndarray: The updated nodes and connections with shifted output indices.
+        tuple: shifted nodes and connections
     """
     diff = new_output_start - old_output_start
 
-    # Shift output indices upwards
-    for i in range(old_output_start, nodes.shape[0]):
-        if jnp.isnan(nodes[i, 0]):
-            break
-        nodes[i, 0] += diff
+    # Create masks for which elements to update
+    node_mask = (nodes[:, 0] >= old_output_start) & ~jnp.isnan(nodes[:, 0])
+    conn_from_mask = (connections[:, 0] >= old_output_start) & ~jnp.isnan(
+        connections[:, 0]
+    )
+    conn_to_mask = (connections[:, 1] >= old_output_start) & ~jnp.isnan(
+        connections[:, 1]
+    )
 
-    # Shift connection indices
-    for i in range(connections.shape[0]):
-        if connections[i, 0] == jnp.nan:
-            break
-        if connections[i, 1] >= old_output_start:
-            connections[i, 1] += diff
-        if connections[i, 0] >= old_output_start:
-            connections[i, 0] += diff
-    return nodes, connections
+    # Apply shifts to arrays where masks are True
+    new_nodes = nodes.at[:, 0].add(diff * node_mask)
+    new_connections = connections.at[:, 0].add(diff * conn_from_mask)
+    new_connections = new_connections.at[:, 1].add(diff * conn_to_mask)
+
+    return new_nodes, new_connections
