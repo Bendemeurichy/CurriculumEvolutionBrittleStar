@@ -50,9 +50,6 @@ def get_observation(env_state):
     obs = jnp.concatenate([
         joint_positions_combined, 
         direction_to_target,
-        #distance_to_target,
-        #target_vector,
-        #disk_velocity
     ])
     
     return obs
@@ -69,7 +66,7 @@ def get_environment_dims(env, state):
 
 
 def get_max_networks_dims(num_inputs, num_outputs):
-    max_nodes = max(50, num_inputs * num_outputs * 2)
+    max_nodes = max(50, (num_inputs * num_outputs) )
     max_connections = max_nodes * 2
     return max_nodes, max_connections
 

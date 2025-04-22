@@ -5,9 +5,164 @@ from tensorneat.genome.utils import add_conn, add_node
 from tensorneat.pipeline import Pipeline
 import jax.random
 import time
+from NEAT.neat_controller import get_max_networks_dims
 
 
 ### CODE FOR EXTENDING AN EXISTING GENOME INSTANCE ###
+def get_segment_count(connections: np.ndarray,arms=5) -> int:
+    conn_count = {}
+    for conn in connections:
+        if np.isnan(conn[0]):
+            continue
+        if conn[1] not in conn_count:
+            conn_count[conn[1]] = 0
+        if conn[0] not in conn_count:
+            conn_count[conn[0]] = 0
+        conn_count[conn[1]] += 1
+    input_size = len([i for i in conn_count if conn_count[i] == 0])
+
+    return int((input_size - 1) / (2*arms))
+
+def add_segment_to_genome(genome:tuple[jnp.ndarray, jnp.ndarray],current_segment_count:int, arm_count=5) -> tuple[jnp.ndarray, jnp.ndarray]:
+    nodes,connections = genome
+    
+    # convert jax array to numpy array
+    nodes = np.array(nodes)
+    connections = np.array(connections)
+    seg_count = current_segment_count + 1
+  
+    # [!!!] don't forget to change this if we were to update the observation space
+    input_size = seg_count*2 * arm_count + 1
+    output_size = seg_count*2 * arm_count
+    old_input_size = current_segment_count*2 * arm_count + 1
+
+    max_nodes, max_conn = get_max_networks_dims(input_size,  output_size)
+    new_nodes = np.full((max_nodes, 4), np.nan)
+    idx = 0
+    n_idx = 0
+    new_node_mapping = {}
+    
+    # Track newly added input and output nodes
+    new_input_nodes = []
+    new_output_nodes = []
+
+    for arm in range(arm_count):
+        for i in range(current_segment_count*2):
+            n = nodes[n_idx]
+            n_idx += 1
+            new_nodes[idx] =  np.array([idx,n[1], n[2], n[3]])
+            new_node_mapping[n[0]] = idx
+            idx += 1
+        
+        # add the new input nodes and track them
+        new_nodes[idx] = np.array([idx, 0.0, 0, 0])
+        new_input_nodes.append(idx)
+        idx += 1
+        
+        new_nodes[idx] = np.array([idx, 0.0, 0, 0])
+        new_input_nodes.append(idx)
+        idx += 1
+
+    # Add the last input node
+    for i in range(n_idx, old_input_size):
+        n = nodes[n_idx]
+        n_idx += 1
+        new_nodes[idx] = np.array([idx, n[1], n[2], n[3]])
+        new_node_mapping[n[0]] = idx
+        idx += 1
+
+    # Remember the output start index
+    output_start_idx = idx
+
+    # add output nodes
+    for arm in range(arm_count):
+        for i in range(current_segment_count*2):
+            n = nodes[n_idx]
+            n_idx += 1
+            new_nodes[idx] = np.array([idx, n[1], n[2], n[3]])
+            new_node_mapping[n[0]] = idx
+            idx += 1
+            
+        # add the new output nodes and track them
+        new_nodes[idx] = np.array([idx, 0.0, 0, 0])
+        new_output_nodes.append(idx)
+        idx += 1
+        
+        new_nodes[idx] = np.array([idx, 0.0, 0, 0])
+        new_output_nodes.append(idx)
+        idx += 1
+
+    # Calculate hidden layer start index
+    hidden_start_idx = idx + 1  # +1 for the padding between nodes and hidden nodes
+
+    # add hidden nodes
+    idx = hidden_start_idx
+    for i in range(n_idx, len(nodes)):
+        n = nodes[n_idx]
+        n_idx += 1
+        if np.isnan(n[0]):
+            continue
+        new_nodes[idx] = np.array([idx, n[1], n[2], n[3]])
+        new_node_mapping[n[0]] = n[0]
+        idx += 1
+    
+    new_connections = np.full((max_conn, 3), np.nan)
+    
+    # Add existing connections
+    conn_idx = 0
+    for c in connections:
+        if np.isnan(c[0]):
+            continue
+        
+        start_conn = new_node_mapping.get(c[0], c[0])
+        end_conn = new_node_mapping.get(c[1], c[1])
+        
+        new_connections[conn_idx] = np.array([start_conn, end_conn, c[2]])
+        conn_idx += 1
+
+    # Generate a seed for random number generation
+    np.random.seed(int(time.time()))
+    
+    # Add new connections to new input/output nodes
+    
+    # Connect each new input node to a subset of hidden nodes and output nodes
+    for input_node in new_input_nodes:
+        # Connect to some output nodes
+        for output_node in range(output_start_idx, hidden_start_idx - 1):
+            # Add connections with 50% probability
+            if np.random.random() < 0.5:
+                weight = np.random.uniform(-1.0, 1.0)  # Random weight
+                new_connections[conn_idx] = np.array([input_node, output_node, weight])
+                conn_idx += 1
+        
+        # Connect to some hidden nodes if they exist
+        for hidden_node in range(hidden_start_idx, idx):
+            # Add connections with 30% probability
+            if np.random.random() < 0.3:
+                weight = np.random.uniform(-1.0, 1.0)  # Random weight
+                new_connections[conn_idx] = np.array([input_node, hidden_node, weight])
+                conn_idx += 1
+
+    # Initialize connections for new output nodes
+    # Connect each new output node from a subset of input nodes and hidden nodes
+    for output_node in new_output_nodes:
+        # Connect from some input nodes
+        for input_node in range(0, output_start_idx):
+            # Add connections with 50% probability
+            if np.random.random() < 0.5:
+                weight = np.random.uniform(-1.0, 1.0)  # Random weight
+                new_connections[conn_idx] = np.array([input_node, output_node, weight])
+                conn_idx += 1
+        
+        # Connect from some hidden nodes if they exist
+        for hidden_node in range(hidden_start_idx, idx):
+            # Add connections with 30% probability
+            if np.random.random() < 0.3:
+                weight = np.random.uniform(-1.0, 1.0)  # Random weight
+                new_connections[conn_idx] = np.array([hidden_node, output_node, weight])
+                conn_idx += 1
+    
+    return (jax.numpy.array(new_nodes, dtype=jax.numpy.float32), jax.numpy.array(new_connections, dtype=jax.numpy.float32))
 
 
 def extend_genome(

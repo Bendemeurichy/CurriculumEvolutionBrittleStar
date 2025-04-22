@@ -12,7 +12,7 @@ import pickle
 from NEAT.neat_controller import init_pipeline
 from NEAT.neat_problem import BrittleStarEnv
 import numpy as np
-from NEAT.genome_extension import extend_genome
+from NEAT.genome_extension import extend_genome, add_segment_to_genome
 
 def create_animation(frames, output_path):
     """Create and save an animation from frames"""
@@ -38,9 +38,12 @@ def save_network_visualization(genome, save_path=None):
         os.makedirs(output_dir, exist_ok=True)
         save_path = os.path.join(output_dir, "brittle_star_neural_network.svg")
 
+
     problem = BrittleStarEnv()
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
+
+
     network = pipeline.algorithm.genome.network_dict(state, *genome)
     pipeline.algorithm.genome.visualize(network, save_path=save_path)
     
@@ -53,13 +56,15 @@ def visualize_neural_network(model_path, save_path=None):
 def visualize_model(model_path, save_path=None):
 
     genome = load_model(model_path)
-
+    #genome = add_segment_to_genome(genome, 1)
+    # save_network_visualization(genome)
+    # exit(1)
     problem = BrittleStarEnv()
 
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
-
+    
     visualize_brittlestar(state=state, genome=genome, algorithm=pipeline.algorithm, save_path=save_path)
 
 
@@ -86,6 +91,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     
     
     transformed_genome = algorithm.transform(state, genome)
+    print(transformed_genome[0].shape, transformed_genome[1].shape)
 
     max_steps = config.MAX_STEPS_VISUALIZATION
     frames = []
@@ -111,6 +117,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         frames.append(processed_frame)
 
         action = algorithm.forward(state, transformed_genome, obs)
+        print(action)
 
         scaled_action = scale_actions(action)
 
