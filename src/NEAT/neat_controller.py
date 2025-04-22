@@ -68,11 +68,15 @@ def get_environment_dims(env, state):
     return num_inputs, num_outputs
 
 
-def init_pipeline(problem):
-    num_inputs, num_outputs = problem._input_dims, problem._output_dims
-
+def get_max_networks_dims(num_inputs, num_outputs):
     max_nodes = max(50, num_inputs * num_outputs * 2)
     max_connections = max_nodes * 2
+    return max_nodes, max_connections
+
+def init_pipeline(problem):
+    num_inputs, num_outputs = problem._input_dims, problem._output_dims
+    max_nodes,max_connections = get_max_networks_dims(num_inputs, num_outputs)
+    
     return Pipeline(
         algorithm=NEAT(
             pop_size=config.POPULATION_SIZE,
@@ -86,7 +90,7 @@ def init_pipeline(problem):
                 init_hidden_layers=(),
                 node_gene=BiasNode(
                     activation_options=[ACT.tanh, ACT.relu, ACT.sigmoid],
-                    aggregation_options=[AGG.sum],
+                    aggregation_options=[AGG.sum],#, AGG.product, AGG.mean],
                 ),
                 output_transform=ACT.identity,
             ),

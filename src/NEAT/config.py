@@ -8,7 +8,7 @@ NUM_SEGMENTS_PER_ARM = 1  # Number of segments per arm
 SIMULATION_DURATION = 40  # Simulation duration in seconds
 
 MAX_STEPS_TRAINING = 400  # Maximum steps for training
-MAX_STEPS_VISUALIZATION = 400  # Maximum steps for visualization
+MAX_STEPS_VISUALIZATION = 600  # Maximum steps for visualization
 
 TIME_SCALE = 2  # Time scale for simulation
 TARGET_DISTANCE = 2.0  # Target distance for locomotion (is ignored when TARGET_POSITION is set)
@@ -21,7 +21,7 @@ NUM_PHYSICS_STEPS_PER_CONTROL_STEP=10 # How many physics steps per action
 POPULATION_SIZE = 50  # Population size for NEAT | the overall number of genomes (neural networks) in your entire population that will evolve over generations.
 SPECIES_SIZE = 10  # Number of species in the population | number of species the algorithm should maintain.
 
-SEED=52
+SEED=50
 
 
 # Brittle star config

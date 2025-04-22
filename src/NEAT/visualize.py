@@ -11,6 +11,8 @@ import render
 import pickle
 from NEAT.neat_controller import init_pipeline
 from NEAT.neat_problem import BrittleStarEnv
+import numpy as np
+from NEAT.genome_extension import extend_genome
 
 def create_animation(frames, output_path):
     """Create and save an animation from frames"""
@@ -29,20 +31,24 @@ def load_model(model_path):
         model = pickle.load(f)
     return model
 
-
-def visualize_neural_network(model_path, save_path=None):
+def save_network_visualization(genome, save_path=None):
 
     if save_path is None:
         output_dir = "output_videos"
         os.makedirs(output_dir, exist_ok=True)
         save_path = os.path.join(output_dir, "brittle_star_neural_network.svg")
 
-    genome = load_model(model_path)
     problem = BrittleStarEnv()
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
     network = pipeline.algorithm.genome.network_dict(state, *genome)
     pipeline.algorithm.genome.visualize(network, save_path=save_path)
+    
+
+def visualize_neural_network(model_path, save_path=None):
+    genome = load_model(model_path)
+    save_network_visualization(genome, save_path=save_path)
+    
 
 def visualize_model(model_path, save_path=None):
 
@@ -52,6 +58,7 @@ def visualize_model(model_path, save_path=None):
 
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
+
 
     visualize_brittlestar(state=state, genome=genome, algorithm=pipeline.algorithm, save_path=save_path)
 
@@ -71,6 +78,9 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
         seed=config.SEED,
     )
+
+
+
     if config.TARGET_POSITION is not None:
         env_state = env.reset(rng=env_state.rng, target_position=config.TARGET_POSITION)
     

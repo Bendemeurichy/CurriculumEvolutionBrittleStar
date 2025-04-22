@@ -89,7 +89,6 @@ class RLEnv(BaseProblem):
 
     def evaluate(self, state: State, randkey, act_func: Callable, params):
         keys = jax.random.split(randkey, self.repeat_times)
-        jax.debug.print("Evaluating...")
         # increment state.current_generation
         rewards = vmap(
             self._evaluate_once, in_axes=(None, 0, None, None, None, None, None)
