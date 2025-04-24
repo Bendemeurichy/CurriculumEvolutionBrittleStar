@@ -48,10 +48,10 @@ def add_segment_to_genome(
         # add the new input nodes and track them
 
         attributes = [
-            idx,  # Node ID
-            np.random.normal(),  # Bias
-            0,  # Node aggregation function
-            np.random.randint(0, 3),  # Node activation function
+            idx,  
+            np.random.normal(),  
+            0, 
+            np.random.randint(0, 3), 
         ]
 
         new_nodes[idx] = np.array(attributes)
@@ -91,23 +91,13 @@ def add_segment_to_genome(
 
         # add the new output nodes and track them
 
-        attributes = [
-            idx,  # Node ID
-            np.random.normal(),  # Bias
-            0,  # Node aggregation function
-            np.random.randint(0, 3),  # Node activation function
-        ]
+        attributes = [idx, np.random.normal(), 0, np.random.randint(0, 3)]  # [Node ID, Bias, Aggregation function, Activation function]
 
         new_nodes[idx] = np.array(attributes)
         new_output_nodes.append(idx)
         idx += 1
 
-        attributes = [
-            idx,  # Node ID
-            np.random.normal(),  # Bias
-            0,  # Node aggregation function
-            np.random.randint(0, 3),  # Node activation function
-        ]
+        attributes = [idx, np.random.normal(), 0,np.random.randint(0, 3)]
 
         new_nodes[idx] = np.array(attributes)
         new_output_nodes.append(idx)
@@ -124,7 +114,7 @@ def add_segment_to_genome(
         if np.isnan(n[0]):
             continue
         new_nodes[idx] = np.array([idx, n[1], n[2], n[3]])
-        new_node_mapping[n[0]] = n[0]
+        new_node_mapping[n[0]] = idx
         idx += 1
 
     new_connections = np.full((max_conn, 3), np.nan)
@@ -183,18 +173,20 @@ def add_segment_to_genome(
                 new_connections[conn_idx] = np.array([hidden_node, output_node, weight])
                 conn_idx += 1
 
-        # Connect between some output nodes
-        for other_output_node in new_nodes[output_start_idx:, 0]:
-            if np.random.random() < 0.1 and other_output_node != output_node:
-                weight = np.random.uniform(-1.0, 1.0)
-                new_connections[conn_idx] = np.array(
-                    [output_node, other_output_node, weight]
-                )
-                conn_idx += 1
+        # # Connect between some output nodes
+        # Commented out this code for now because it produces invalid connections
 
-            if conn_idx >= max_conn:
-                break
+        # for other_output_node in new_nodes[output_start_idx:, 0]:
+        #     if np.random.random() < 0.1 and other_output_node != output_node:
+        #         weight = np.random.uniform(-1.0, 1.0)
+        #         new_connections[conn_idx] = np.array(
+        #             [output_node, other_output_node, weight]
+        #         )
+        #         conn_idx += 1
 
+        #     if conn_idx >= max_conn:
+        #         break
+        
     return (
         jax.numpy.array(new_nodes, dtype=jax.numpy.float32),
         jax.numpy.array(new_connections, dtype=jax.numpy.float32),

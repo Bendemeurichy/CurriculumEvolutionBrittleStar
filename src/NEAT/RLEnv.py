@@ -115,7 +115,7 @@ class RLEnv(BaseProblem):
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state = self.reset(rng_reset)
+        init_obs, init_env_state, targets = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)
@@ -130,7 +130,7 @@ class RLEnv(BaseProblem):
             episode = None
 
         def cond_func(carry):
-            _, _, _, done, _, count, _, rk = carry
+            _, _, _, done, _, count, _, rk,_  = carry
             return ~done & (count < self.max_step)
 
         def body_func(carry):
@@ -143,6 +143,7 @@ class RLEnv(BaseProblem):
                 count,
                 epis,
                 rk,
+                targets
             ) = carry  # tr -> total reward; rk -> randkey
 
             if normalize_obs:
@@ -154,7 +155,7 @@ class RLEnv(BaseProblem):
             else:
                 action = act_func(state, params, obs)
             next_obs, next_env_state, reward, done, _ = self.step(
-                rng, env_state, action
+                rng, env_state, action,targets
             )
             next_rng, _ = jax.random.split(rng)
 
@@ -171,12 +172,13 @@ class RLEnv(BaseProblem):
                 count + 1,
                 epis,
                 jax.random.split(rk)[0],
+                targets
             )
 
-        _, _, _, _, total_reward, _, episode, _ = jax.lax.while_loop(
+        _, _, _, _, total_reward, _, episode, _,_ = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs, init_env_state, rng_episode, False, 0.0, 0, episode, randkey),
+            (init_obs, init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets),
         )
 
         if record_episode:
@@ -184,8 +186,8 @@ class RLEnv(BaseProblem):
         else:
             return total_reward
 
-    def step(self, randkey, env_state, action):
-        return self.env_step(randkey, env_state, action)
+    def step(self, randkey, env_state, action,targets):
+        return self.env_step(randkey, env_state, action,targets)
 
     def reset(self, randkey):
         return self.env_reset(randkey)

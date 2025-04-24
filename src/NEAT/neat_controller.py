@@ -10,6 +10,7 @@ from tensorneat.pipeline import Pipeline
 from tensorneat.algorithm.neat import NEAT
 from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.common import ACT, AGG
+from NEAT.target_utils import get_direction_to_closest_target
 
 
 def scale_actions(actions):
@@ -27,22 +28,22 @@ def scale_actions(actions):
     return scaled_action
 
 
-def get_observation(env_state):
+def get_observation(env_state, targets=None):
     """Extract observation from environment state"""
     joint_positions = []
     for arm in range(config.NUM_ARMS):
         joint_positions.append(get_joint_positions(env_state, arm))
-
-    direction_to_target = get_direction_to_target(env_state)
     
-    # Add distance to target as observation
-    distance_to_target = env_state.observations["xy_distance_to_target"]
-    
-    # Add normalized vector to target (gives x,y direction)
-    target_vector = env_state.observations["unit_xy_direction_to_target"]
-    
-    # Add disk velocity
-    disk_velocity = env_state.observations["disk_linear_velocity"][:2]
+    # If targets is provided, use the closest target, otherwise use the environment target
+    if targets is not None:
+        disk_position = env_state.observations["disk_position"][:2]
+        disk_rotation = env_state.observations["disk_rotation"][2]
+        direction_to_target, _ = get_direction_to_closest_target(
+            disk_position, disk_rotation, targets
+        )
+    else:
+        # Use the target from the environment state
+        direction_to_target = get_direction_to_target(env_state)
     
     joint_positions_combined = jnp.concatenate(joint_positions)
     
@@ -66,7 +67,7 @@ def get_environment_dims(env, state):
 
 
 def get_max_networks_dims(num_inputs, num_outputs):
-    max_nodes = max(50, (num_inputs * num_outputs) )
+    max_nodes = max(50, (num_inputs * num_outputs) * 2)
     max_connections = max_nodes * 2
     return max_nodes, max_connections
 

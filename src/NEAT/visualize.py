@@ -56,7 +56,7 @@ def visualize_neural_network(model_path, save_path=None):
 def visualize_model(model_path, save_path=None):
 
     genome = load_model(model_path)
-    #genome = add_segment_to_genome(genome, 1)
+    genome = add_segment_to_genome(genome, 1)
     # save_network_visualization(genome)
     # exit(1)
     problem = BrittleStarEnv()
@@ -91,7 +91,6 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     
     
     transformed_genome = algorithm.transform(state, genome)
-    print(transformed_genome[0].shape, transformed_genome[1].shape)
 
     max_steps = config.MAX_STEPS_VISUALIZATION
     frames = []
