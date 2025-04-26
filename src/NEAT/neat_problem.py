@@ -49,7 +49,6 @@ class BrittleStarEnv(RLEnv):
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-        jax.debug.print("targets: {} and {}", targets[0], targets[1])
 
         obs = get_observation(next_env_state, targets=targets)
         
