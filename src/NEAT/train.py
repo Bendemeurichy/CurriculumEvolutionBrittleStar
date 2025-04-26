@@ -37,14 +37,14 @@ def train_neat_controller():
 
     genome = load_model("./models/best_genome.pkl")
 
-    state = extend_genome(
-        state,
-        pipeline,
-        genome=genome,
-        current_segment_count=1,
-        extra_segments=1,
-        arm_count=5,
-    )
+    # state = extend_genome(
+    #     state,
+    #     pipeline,
+    #     genome=genome,
+    #     current_segment_count=1,
+    #     extra_segments=1,
+    #     arm_count=5,
+    # )
 
     state, best_genome = pipeline.auto_run(state)
     print("Evolution completed successfully")

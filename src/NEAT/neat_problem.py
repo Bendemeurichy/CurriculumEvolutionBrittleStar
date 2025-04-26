@@ -84,16 +84,28 @@ class BrittleStarEnv(RLEnv):
         actuator_forces = next_env_state.observations["actuator_force"]
         energy_usage = jnp.sum(jnp.abs(actuator_forces))
         
-        # Energy efficiency penalty - scaled to be significant but not overwhelming
-        energy_penalty = energy_usage * 0.01
+        # More balanced energy penalty - less punishing at the beginning
+        energy_penalty = energy_usage * 0.005  # Reduced from 0.01
         
-        # Combined reward: distance penalty + progress reward + movement incentive - energy penalty
-        reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
+        # Base reward just for trying (helps break out of local minima)
+        base_reward = 0.1
         
-        # Bonus reward for getting very close to target
-        reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
+        # Increase progress reward significantly compared to distance penalty
+        # Combined reward: base + reduced distance penalty + increased progress reward + movement incentive - energy penalty
+        reward = base_reward - (distance * 0.5) + (progress * 10.0) + (disk_velocity * 0.5) - energy_penalty
         
-        done = jnp.array(distance < 0.1)
+        # Stronger bonus reward for getting close to target
+        close_distance_threshold = 1.0  # Increased from 0.5
+        reward = jnp.where(distance < close_distance_threshold, 
+                          reward + (close_distance_threshold - distance) * 10.0, 
+                          reward)
+        
+        # Extra bonus for significant movement in any direction
+        reward = jnp.where(disk_velocity > 0.2, reward + 0.2, reward)
+        
+        # Make done condition less strict so the agent has more time to learn
+        # Only terminate when extremely close to target
+        done = jnp.array(distance < 0.05)  # Changed from 0.1
 
         info = {"closest_target_idx": closest_target_idx}
 
