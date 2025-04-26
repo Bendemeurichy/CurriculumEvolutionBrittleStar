@@ -56,7 +56,7 @@ def visualize_neural_network(model_path, save_path=None):
 def visualize_model(model_path, save_path=None):
 
     genome = load_model(model_path)
-    genome = add_segment_to_genome(genome, 1)
+    #genome = add_segment_to_genome(genome, 1)
     # save_network_visualization(genome)
     # exit(1)
     problem = BrittleStarEnv()
@@ -116,7 +116,6 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         frames.append(processed_frame)
 
         action = algorithm.forward(state, transformed_genome, obs)
-        print(action)
 
         scaled_action = scale_actions(action)
 
@@ -171,7 +170,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 if __name__ == "__main__":
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models", "genome_1_seg_rand.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "../models", "best_genome.pkl")
 
     visualize_model(model_path=model_path)
     #visualize_neural_network(model_path=model_path)
