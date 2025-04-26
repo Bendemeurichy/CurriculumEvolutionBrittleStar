@@ -95,9 +95,17 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
     max_steps = config.MAX_STEPS_VISUALIZATION
     frames = []
 
+
+
+    # t = env_state.mj_data.xpos[env_state.mj_model.body("target").id][:2]
+    # target = [t,t]
+    # print("Target position:", target)
+    target = None
     obs = get_observation(env_state)
 
     initial_distance = env_state.observations["xy_distance_to_target"][0]
+
+
     min_distance = initial_distance
     total_reward = 0.0
 
@@ -126,8 +134,8 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = get_observation(env_state)
-
+        obs = get_observation(env_state,targets=target)
+        
 
         current_distance = env_state.observations["xy_distance_to_target"][0]
         min_distance = min(float(min_distance), float(current_distance))

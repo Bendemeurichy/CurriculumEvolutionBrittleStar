@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from NEAT.genome_extension import extend_genome
+# from NEAT.genome_extension import extend_genome
 from NEAT.neat_problem import BrittleStarEnv
 from NEAT.neat_controller import init_pipeline
 from NEAT.visualize import load_model
@@ -35,7 +35,7 @@ def train_neat_controller():
     print("Initializing TensorNEAT state...")
     state = pipeline.setup()
 
-    genome = load_model("./models/best_genome.pkl")
+    # genome = load_model("./models/best_genome.pkl")
 
     # state = extend_genome(
     #     state,

@@ -89,6 +89,7 @@ class RLEnv(BaseProblem):
 
     def evaluate(self, state: State, randkey, act_func: Callable, params):
         keys = jax.random.split(randkey, self.repeat_times)
+        jax.debug.print("Evaluating...")
         # increment state.current_generation
         rewards = vmap(
             self._evaluate_once, in_axes=(None, 0, None, None, None, None, None)
@@ -115,7 +116,7 @@ class RLEnv(BaseProblem):
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state, targets = self.reset(rng_reset)
+        init_obs, init_env_state,targets = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)
@@ -130,7 +131,7 @@ class RLEnv(BaseProblem):
             episode = None
 
         def cond_func(carry):
-            _, _, _, done, _, count, _, rk,_  = carry
+            _, _, _, done, _, count, _, rk = carry
             return ~done & (count < self.max_step)
 
         def body_func(carry):
@@ -143,7 +144,6 @@ class RLEnv(BaseProblem):
                 count,
                 epis,
                 rk,
-                targets
             ) = carry  # tr -> total reward; rk -> randkey
 
             if normalize_obs:
@@ -172,13 +172,12 @@ class RLEnv(BaseProblem):
                 count + 1,
                 epis,
                 jax.random.split(rk)[0],
-                targets
             )
 
-        _, _, _, _, total_reward, _, episode, _,_ = jax.lax.while_loop(
+        _, _, _, _, total_reward, _, episode, _ = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs, init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets),
+            (init_obs, init_env_state, rng_episode, False, 0.0, 0, episode, randkey),
         )
 
         if record_episode:

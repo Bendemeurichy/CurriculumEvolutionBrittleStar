@@ -49,7 +49,9 @@ class BrittleStarEnv(RLEnv):
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-        obs = get_observation(next_env_state)
+        jax.debug.print("targets: {} and {}", targets[0], targets[1])
+
+        obs = get_observation(next_env_state, targets=targets)
         
         # Calculate distances to both targets
         disk_position = next_env_state.observations["disk_position"][:2]
@@ -112,9 +114,7 @@ class BrittleStarEnv(RLEnv):
         else:
             # Reset with random target position
             env_state = self.env.reset(rng=target_key)
-            
-        obs = get_observation(env_state)
-        
+
         # Create separate random keys for each target
         target_key1, target_key2 = jax.random.split(randkey)
         targets = jnp.array([
@@ -122,6 +122,7 @@ class BrittleStarEnv(RLEnv):
             self.generate_target_position(target_key2)
         ])
         
+        obs = get_observation(env_state, targets=targets)
         return obs, env_state, targets
     
     def generate_target_position(self,rng) -> jnp.ndarray:
