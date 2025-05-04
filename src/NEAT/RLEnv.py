@@ -89,6 +89,7 @@ class RLEnv(BaseProblem):
 
     def evaluate(self, state: State, randkey, act_func: Callable, params):
         keys = jax.random.split(randkey, self.repeat_times)
+        jax.debug.print("Evaluating...")
         # increment state.current_generation
         rewards = vmap(
             self._evaluate_once, in_axes=(None, 0, None, None, None, None, None)
@@ -115,7 +116,7 @@ class RLEnv(BaseProblem):
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state = self.reset(rng_reset)
+        init_obs, init_env_state,targets = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)
@@ -154,7 +155,7 @@ class RLEnv(BaseProblem):
             else:
                 action = act_func(state, params, obs)
             next_obs, next_env_state, reward, done, _ = self.step(
-                rng, env_state, action
+                rng, env_state, action,targets
             )
             next_rng, _ = jax.random.split(rng)
 
@@ -184,8 +185,8 @@ class RLEnv(BaseProblem):
         else:
             return total_reward
 
-    def step(self, randkey, env_state, action):
-        return self.env_step(randkey, env_state, action)
+    def step(self, randkey, env_state, action,targets):
+        return self.env_step(randkey, env_state, action,targets)
 
     def reset(self, randkey):
         return self.env_reset(randkey)

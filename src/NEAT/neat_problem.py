@@ -43,18 +43,37 @@ class BrittleStarEnv(RLEnv):
 
         self._input_dims, self._output_dims = get_environment_dims(env, env_state)
 
-    def env_step(self, randkey, env_state, action):
+    def env_step(self, randkey, env_state, action, targets):
         """Step the environment with the given action"""
         scaled_action = scale_actions(action)
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-        obs = get_observation(next_env_state)
 
-        distance = next_env_state.observations["xy_distance_to_target"][0]
+        obs = get_observation(next_env_state, targets=targets)
         
-        # Get the previous distance for progress calculation
-        prev_distance = env_state.observations["xy_distance_to_target"][0]
+        # Calculate distances to both targets
+        disk_position = next_env_state.observations["disk_position"][:2]
+        distances = jnp.array([
+            jnp.linalg.norm(disk_position - targets[0][:2]),
+            jnp.linalg.norm(disk_position - targets[1][:2])
+        ])
+        
+        # Find the index of the closest target
+        closest_target_idx = jnp.argmin(distances)
+        
+        # Get distance to the closest target
+        distance = distances[closest_target_idx]
+        
+        # Calculate previous distances for progress calculation
+        prev_disk_position = env_state.observations["disk_position"][:2]
+        prev_distances = jnp.array([
+            jnp.linalg.norm(prev_disk_position - targets[0][:2]),
+            jnp.linalg.norm(prev_disk_position - targets[1][:2])
+        ])
+        
+        # Get previous distance to the same target (not necessarily the previously closest one)
+        prev_distance = prev_distances[closest_target_idx]
         
         # Calculate progress toward target (positive when getting closer)
         progress = prev_distance - distance
@@ -62,15 +81,25 @@ class BrittleStarEnv(RLEnv):
         # Calculate total movement (to prevent staying still)
         disk_velocity = jnp.linalg.norm(next_env_state.observations["disk_linear_velocity"][:2])
         
-        # Combined reward: distance penalty + progress reward + small movement incentive
-        reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2
+        # Calculate energy usage (sum of absolute actuator forces)
+        actuator_forces = next_env_state.observations["actuator_force"]
+        energy_usage = jnp.sum(jnp.abs(actuator_forces))
+        
+        # More balanced energy penalty - less punishing at the beginning
+        energy_penalty = energy_usage * 0.008 
+        
+
+        
+    
+
+        reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
         
         # Bonus reward for getting very close to target
         reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
-        
-        done = jnp.array(distance < 0.1)
 
-        info = {}
+        done = jnp.array(distance < 0.05)  # Changed from 0.1
+
+        info = {"closest_target_idx": closest_target_idx}
 
         return obs, next_env_state, reward, done, info
 
@@ -84,10 +113,24 @@ class BrittleStarEnv(RLEnv):
         else:
             # Reset with random target position
             env_state = self.env.reset(rng=target_key)
-            
 
-        obs = get_observation(env_state)
-        return obs, env_state
+        # Create separate random keys for each target
+        target_key1, target_key2 = jax.random.split(randkey)
+        targets = jnp.array([
+            self.generate_target_position(target_key1), 
+            self.generate_target_position(target_key2)
+        ])
+        
+        obs = get_observation(env_state, targets=targets)
+        return obs, env_state, targets
+    
+    def generate_target_position(self,rng) -> jnp.ndarray:
+            angle = jax.random.uniform(key=rng, shape=(), minval=0, maxval=jnp.pi * 2)
+            radius = self.env.environment_configuration.target_distance
+            random_position = jnp.array(
+                [radius * jnp.cos(angle), radius * jnp.sin(angle), 0.05]
+            )
+            return random_position
 
     @property
     def input_shape(self):
