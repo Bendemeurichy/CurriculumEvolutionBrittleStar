@@ -46,6 +46,7 @@ def train_neat_controller():
         arm_count=5,
     )
 
+    # TODO take 10 best genomes instead of 1
     state, best_genome = pipeline.auto_run(state)
     print("Evolution completed successfully")
     if best_genome is not None:
