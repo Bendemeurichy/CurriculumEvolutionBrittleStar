@@ -228,9 +228,11 @@ def extend_genome(
 
     for _ in range(extra_segments):
         for i in range(all_nodes.shape[0]):
-            current_genome = np.random.choice(genome)
-            current_genome = copy.deepcopy(current_genome)
-            
+
+            current_genome = copy.deepcopy(genome[i%len(genome)])
+
+            print(f"Genome {i%len(genome)} selected for extension")
+
             new_nodes, new_conns = add_segment_to_genome(
                 current_genome, current_segment_count, arm_count=arm_count
             )

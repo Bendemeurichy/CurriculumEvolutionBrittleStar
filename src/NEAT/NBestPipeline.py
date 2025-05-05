@@ -11,6 +11,7 @@ class NBestPipeline(Pipeline):
         super().__init__(*args, **kwargs)
         self.n_best = n_best
         self.best_genomes: list[tuple] = []
+        self.best_fitnesses: list[float] = []
 
     def analysis(self, state: State, pop, fitnesses):
         """Modified analysis method to store top N genomes."""
@@ -34,7 +35,7 @@ class NBestPipeline(Pipeline):
         # Optimization: Only consider genomes that might make it into the top N
         worst_top_fitness = float("-inf")
         if len(self.best_genomes) >= self.n_best:
-            worst_top_fitness = self.best_genomes[-1][0]
+            worst_top_fitness = min(self.best_fitnesses)
 
         # Update top N genomes
         for idx, fitness in enumerate(fitnesses):
@@ -42,18 +43,24 @@ class NBestPipeline(Pipeline):
                 continue
 
             genome = (pop[0][idx], pop[1][idx])
-            self.best_genomes.append((fitness, genome))
+            self.best_genomes.append(genome)
+            self.best_fitnesses.append(fitness)
 
-        # Keep only top N genomes by sorting and slicing
-        self.best_genomes.sort(
-            key=lambda x: x[0], reverse=True
-        )  # Sort by fitness (descending)
-        self.best_genomes = self.best_genomes[: self.n_best]  # Keep only top N
+        # Keep only top N genomes by sorting both lists based on fitness
+        if self.best_fitnesses:
+            # Sort both lists by fitness (descending)
+            sorted_indices = np.argsort(self.best_fitnesses)[::-1]
+            self.best_fitnesses = [
+                self.best_fitnesses[i] for i in sorted_indices[: self.n_best]
+            ]
+            self.best_genomes = [
+                self.best_genomes[i] for i in sorted_indices[: self.n_best]
+            ]
 
         # For backward compatibility - set best_fitness and best_genome
         if self.best_genomes:
-            self.best_fitness = self.best_genomes[0][0]
-            self.best_genome = self.best_genomes[0][1]
+            self.best_fitness = self.best_fitnesses[0]
+            self.best_genome = self.best_genomes[0]
 
         if self.is_save:
             # save best genome of this generation
@@ -73,8 +80,10 @@ class NBestPipeline(Pipeline):
             if not os.path.exists(top_dir):
                 os.makedirs(top_dir)
 
-            # Our list is already sorted
-            for i, (fitness, genome) in enumerate(self.best_genomes):
+            # Save each genome with its fitness
+            for i, (genome, fitness) in enumerate(
+                zip(self.best_genomes, self.best_fitnesses)
+            ):
                 genome = jax.device_get(genome)
                 file_name = os.path.join(
                     top_dir, f"top_{i+1}_fitness_{fitness:.4f}.npz"
