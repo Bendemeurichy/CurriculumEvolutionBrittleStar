@@ -40,12 +40,13 @@ class BrittleStarEnv(RLEnv):
         self.env = env
         self.initial_env_state = env_state
         self.environment_configuration = environment_configuration
+        self.num_segments_per_arm = num_segments_per_arm
 
         self._input_dims, self._output_dims = get_environment_dims(env, env_state)
 
     def env_step(self, randkey, env_state, action, targets):
         """Step the environment with the given action"""
-        scaled_action = scale_actions(action)
+        scaled_action = scale_actions(action,num_segments_per_arm=self.num_segments_per_arm)
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
@@ -91,9 +92,9 @@ class BrittleStarEnv(RLEnv):
         reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
         
         # Bonus reward for getting very close to target
-        reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
+        # reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
 
-        done = jnp.array(distance < 0.05)  # Changed from 0.1
+        done = jnp.array(distance < 0.1)  
 
         info = {"closest_target_idx": closest_target_idx}
 

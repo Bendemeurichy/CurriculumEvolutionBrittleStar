@@ -14,10 +14,10 @@ from tensorneat.common import ACT, AGG
 from NEAT.target_utils import get_direction_to_closest_target
 
 
-def scale_actions(actions):
+def scale_actions(actions,num_segments_per_arm=config.NUM_SEGMENTS_PER_ARM):
     """Scale actions to match joint limits"""
-    lower_bounds = jnp.array([-1.047, -0.785] * sum(config.NUM_SEGMENTS_PER_ARM))
-    upper_bounds = jnp.array([1.047, 0.785] * sum(config.NUM_SEGMENTS_PER_ARM))
+    lower_bounds = jnp.array([-1.047, -0.785] * sum(num_segments_per_arm))
+    upper_bounds = jnp.array([1.047, 0.785] * sum(num_segments_per_arm))
 
     # Normalize between -1 and 1
     normalized_action = jnp.tanh(actions)
