@@ -48,10 +48,10 @@ def add_segment_to_genome(
         # add the new input nodes and track them
 
         attributes = [
-            idx,  
-            np.random.normal(),  
-            0, 
-            np.random.randint(0, 3), 
+            idx,
+            np.random.normal(),
+            0,
+            np.random.randint(0, 3),
         ]
 
         new_nodes[idx] = np.array(attributes)
@@ -91,13 +91,18 @@ def add_segment_to_genome(
 
         # add the new output nodes and track them
 
-        attributes = [idx, np.random.normal(), 0, np.random.randint(0, 3)]  # [Node ID, Bias, Aggregation function, Activation function]
+        attributes = [
+            idx,
+            np.random.normal(),
+            0,
+            np.random.randint(0, 3),
+        ]  # [Node ID, Bias, Aggregation function, Activation function]
 
         new_nodes[idx] = np.array(attributes)
         new_output_nodes.append(idx)
         idx += 1
 
-        attributes = [idx, np.random.normal(), 0,np.random.randint(0, 3)]
+        attributes = [idx, np.random.normal(), 0, np.random.randint(0, 3)]
 
         new_nodes[idx] = np.array(attributes)
         new_output_nodes.append(idx)
@@ -186,7 +191,7 @@ def add_segment_to_genome(
 
         #     if conn_idx >= max_conn:
         #         break
-        
+
     return (
         jax.numpy.array(new_nodes, dtype=jax.numpy.float32),
         jax.numpy.array(new_connections, dtype=jax.numpy.float32),
@@ -196,7 +201,7 @@ def add_segment_to_genome(
 def extend_genome(
     state: State,
     pipeline: Pipeline,
-    genome: tuple[jnp.ndarray, jnp.ndarray],
+    genome: list[tuple[jnp.ndarray, jnp.ndarray]],
     current_segment_count: int,
     extra_segments: int = 0,
     arm_count: int = 5,
@@ -223,7 +228,9 @@ def extend_genome(
 
     for _ in range(extra_segments):
         for i in range(all_nodes.shape[0]):
-            current_genome = copy.deepcopy(genome)
+            current_genome = np.random.choice(genome)
+            current_genome = copy.deepcopy(current_genome)
+            
             new_nodes, new_conns = add_segment_to_genome(
                 current_genome, current_segment_count, arm_count=arm_count
             )
