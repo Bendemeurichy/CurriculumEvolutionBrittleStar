@@ -31,21 +31,24 @@ class NBestPipeline(Pipeline):
         new_timestamp = time.time()
         cost_time = new_timestamp - self.generation_timestamp
 
+        # Optimization: Only consider genomes that might make it into the top N
+        worst_top_fitness = float("-inf")
+        if len(self.best_genomes) >= self.n_best:
+            worst_top_fitness = self.best_genomes[-1][0]
+
         # Update top N genomes
         for idx, fitness in enumerate(fitnesses):
-            if np.isinf(fitness):
+            if np.isinf(fitness) or fitness <= worst_top_fitness:
                 continue
 
             genome = (pop[0][idx], pop[1][idx])
-
-            # Add this genome to our list of candidates
             self.best_genomes.append((fitness, genome))
 
         # Keep only top N genomes by sorting and slicing
         self.best_genomes.sort(
             key=lambda x: x[0], reverse=True
         )  # Sort by fitness (descending)
-        self.best_genomes = self.best_genomes[: self.top_n]  # Keep only top N
+        self.best_genomes = self.best_genomes[: self.n_best]  # Keep only top N
 
         # For backward compatibility - set best_fitness and best_genome
         if self.best_genomes:
@@ -100,3 +103,10 @@ class NBestPipeline(Pipeline):
             self.problem.show_details(
                 state, state.randkey, self.algorithm.forward, pop_transformed
             )
+
+    def auto_run(self, state):
+        # Run the parent's auto_run implementation but discard its return value
+        state, _ = super().auto_run(state)
+
+        # Return state and all best genomes instead of just the best one
+        return state, self.best_genomes

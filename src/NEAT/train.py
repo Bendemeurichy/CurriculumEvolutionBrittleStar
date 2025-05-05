@@ -47,12 +47,13 @@ def train_neat_controller():
     # )
 
     # TODO take 10 best genomes instead of 1
-    state, best_genome = pipeline.auto_run(state)
+    state, best_genomes = pipeline.auto_run(state)
+    print(f"Top {len(best_genomes)} genomes:")
     print("Evolution completed successfully")
-    if best_genome is not None:
-        save_genome(best_genome, output_dir="./models")
+    if best_genomes is not None:
+        save_genome(best_genomes, output_dir="./models")
 
-    return state, best_genome
+    return state, best_genomes
 
 
 if __name__ == "__main__":
