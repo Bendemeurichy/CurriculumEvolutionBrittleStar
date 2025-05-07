@@ -84,11 +84,13 @@ class BrittleStarEnv(RLEnv):
         
         # Calculate energy usage (sum of absolute actuator forces)
         actuator_forces = next_env_state.observations["actuator_force"]
-        energy_usage = jnp.sum(jnp.abs(actuator_forces))
-        
+        num_actuators = actuator_forces.size
+        energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
+
+
         # More balanced energy penalty - less punishing at the beginning
-        energy_penalty = energy_usage * 0.01
-        
+        energy_penalty = energy_usage * 0.05
+        jax.debug.print("Energy penalty: {}", energy_penalty)
         reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
         
         # Bonus reward for getting very close to target

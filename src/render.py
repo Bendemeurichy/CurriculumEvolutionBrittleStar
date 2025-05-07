@@ -111,30 +111,40 @@ def save_frame_samples(frames, output_dir="simulation_output", sample_rate=10):
 
 
 def create_animation(
-    frames, output_path="simulation_output/brittle_star_simulation.mp4", interval=33
+    frames, output_path="simulation_output/brittle_star_simulation.mp4", interval=33, high_quality=False
 ):
-    """Create and save an animation from the simulation frames"""
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(16, 12))
     plt.axis("off")
 
     def init():
         im = plt.imshow(frames[0])
+        plt.tight_layout(pad=0)
         return [im]
 
     def animate(i):
         plt.clf()
         plt.axis("off")
         im = plt.imshow(frames[i])
+        plt.tight_layout(pad=0)
         return [im]
 
     ani = animation.FuncAnimation(
         fig, animate, init_func=init, frames=len(frames), interval=interval, blit=True
     )
 
-    # Save the animation with higher quality
-    ani.save(output_path, fps=30, dpi=100)
+    dpi = 200 if high_quality else 100
+    bitrate = 5000 if high_quality else 1800
+    fps = 30 if high_quality else 20
+    
+    ani.save(
+        output_path, 
+        fps=fps, 
+        dpi=dpi,
+        bitrate=bitrate
+    )
     return ani
 
 

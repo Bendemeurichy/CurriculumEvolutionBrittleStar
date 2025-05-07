@@ -143,6 +143,10 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
         reward = current_distance
         total_reward += reward
 
+        if current_distance < 0.1:
+            print("Target reached!")
+            break
+
         print(
             f"Step {step}: Distance = {current_distance:.4f}, Min Distance = {min_distance:.4f}"
         )
@@ -178,7 +182,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 if __name__ == "__main__":
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models", "best_genome.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_1", "best_1_genome_1_seg.pkl")
 
     visualize_model(model_path=model_path)
     #visualize_neural_network(model_path=model_path)
