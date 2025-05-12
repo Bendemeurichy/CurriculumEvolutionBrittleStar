@@ -44,37 +44,22 @@ class BrittleStarEnv(RLEnv):
 
         self._input_dims, self._output_dims = get_environment_dims(env, env_state)
 
-    def env_step(self, randkey, env_state, action, targets):
+    def env_step(self, randkey, env_state, action, target):
         """Step the environment with the given action"""
-        scaled_action = scale_actions(action,num_segments_per_arm=self.num_segments_per_arm)
+        scaled_action = scale_actions(action, num_segments_per_arm=self.num_segments_per_arm)
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-
-        obs = get_observation(next_env_state, targets=targets)
+        obs = get_observation(next_env_state, target)
         
-        # Calculate distances to both targets
+                
+        # Calculate distance to the specified target
         disk_position = next_env_state.observations["disk_position"][:2]
-        distances = jnp.array([
-            jnp.linalg.norm(disk_position - targets[0][:2]),
-            jnp.linalg.norm(disk_position - targets[1][:2])
-        ])
+        distance = jnp.linalg.norm(disk_position - target[:2])
         
-        # Find the index of the closest target
-        closest_target_idx = jnp.argmin(distances)
-        
-        # Get distance to the closest target
-        distance = distances[closest_target_idx]
-        
-        # Calculate previous distances for progress calculation
+        # Calculate previous distance for progress calculation
         prev_disk_position = env_state.observations["disk_position"][:2]
-        prev_distances = jnp.array([
-            jnp.linalg.norm(prev_disk_position - targets[0][:2]),
-            jnp.linalg.norm(prev_disk_position - targets[1][:2])
-        ])
-        
-        # Get previous distance to the same target (not necessarily the previously closest one)
-        prev_distance = prev_distances[closest_target_idx]
+        prev_distance = jnp.linalg.norm(prev_disk_position - target[:2])
         
         # Calculate progress toward target (positive when getting closer)
         progress = prev_distance - distance
@@ -87,7 +72,6 @@ class BrittleStarEnv(RLEnv):
         num_actuators = actuator_forces.size
         energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
 
-
         # More balanced energy penalty - less punishing at the beginning
         energy_penalty = energy_usage * 0.05
         reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
@@ -97,7 +81,7 @@ class BrittleStarEnv(RLEnv):
 
         done = jnp.array(distance < 0.1)  
 
-        info = {"closest_target_idx": closest_target_idx}
+        info = {}
 
         return obs, next_env_state, reward, done, info
 
@@ -119,8 +103,9 @@ class BrittleStarEnv(RLEnv):
             self.generate_target_position(target_key2)
         ])
         
-        obs = get_observation(env_state, targets=targets)
-        return obs, env_state, targets
+        obs1 = get_observation(env_state, targets[0])
+        obs2 = get_observation(env_state, targets[0])
+        return (obs1, obs2), env_state, targets
     
     def generate_target_position(self,rng) -> jnp.ndarray:
             angle = jax.random.uniform(key=rng, shape=(), minval=0, maxval=jnp.pi * 2)

@@ -29,18 +29,18 @@ def scale_actions(actions,num_segments_per_arm=config.NUM_SEGMENTS_PER_ARM):
     return scaled_action
 
 
-def get_observation(env_state, targets=None):
+def get_observation(env_state, target=None):
     """Extract observation from environment state"""
     joint_positions = []
     for arm in range(config.NUM_ARMS):
         joint_positions.append(get_joint_positions(env_state, arm))
 
     # If targets is provided, use the closest target, otherwise use the environment target
-    if targets is not None:
+    if target is not None:
         disk_position = env_state.observations["disk_position"][:2]
         disk_rotation = env_state.observations["disk_rotation"][2]
-        direction_to_target, _ = get_direction_to_closest_target(
-            disk_position, disk_rotation, targets
+        direction_to_target = get_direction_to_closest_target(
+            disk_position, disk_rotation, target
         )
     else:
         # Use the target from the environment state
