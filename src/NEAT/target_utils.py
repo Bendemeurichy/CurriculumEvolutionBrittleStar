@@ -9,13 +9,10 @@ def get_distance_to_closest_target(disk_position, targets):
     ])
     return jnp.min(distances), jnp.argmin(distances)
 
-def get_direction_to_closest_target(disk_position, disk_rotation, targets):
-    """Calculate direction to closest target relative to disk orientation."""
-    # Get distances to both targets
-    distance, closest_target_idx = get_distance_to_closest_target(disk_position, targets)
-    
-    # Get vector to target (assuming disk_position and target are in x,y coordinates)
-    target_position = targets[closest_target_idx][:2]
+def get_direction_to_closest_target(disk_position, disk_rotation, target):
+    """Calculate direction to the single target relative to disk orientation."""
+    # Get the single target position
+    target_position = target[:2]
     direction_vector = target_position - disk_position
     
     # Normalize the direction vector
@@ -29,4 +26,4 @@ def get_direction_to_closest_target(disk_position, disk_rotation, targets):
     # This gives relative angle between disk orientation and target
     angle_diff = jnp.mod(target_angle - disk_rotation + jnp.pi, 2 * jnp.pi) - jnp.pi
     
-    return jnp.array([angle_diff]), closest_target_idx
+    return jnp.array([angle_diff])

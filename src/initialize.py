@@ -5,6 +5,9 @@ import subprocess
 
 
 try:
+    os.environ['MUJOCO_GL'] = 'egl'
+    os.environ["DISPLAY"] = ""
+    
     if subprocess.run('nvidia-smi').returncode:
         raise RuntimeError('Cannot communicate with GPU.')
 
@@ -36,8 +39,8 @@ try:
     import jax
 
     print(jax.devices('gpu'))
-except Exception:
-    logging.warning("Failed to initialize GPU. Everything will run on the cpu.")
+except Exception as e:
+    logging.warning(f"Failed to initialize GPU. Everything will run on the CPU. Exception: {e}")
 
 try:
     print('Checking that the mujoco installation succeeded:')

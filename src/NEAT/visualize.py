@@ -31,7 +31,7 @@ def load_model(model_path):
         model = pickle.load(f)
     return model
 
-def save_network_visualization(genome, save_path=None):
+def save_network_visualization(genome,segments, save_path=None):
 
     if save_path is None:
         output_dir = "output_videos"
@@ -39,7 +39,7 @@ def save_network_visualization(genome, save_path=None):
         save_path = os.path.join(output_dir, "brittle_star_neural_network.svg")
 
 
-    problem = BrittleStarEnv()
+    problem = BrittleStarEnv(num_segments_per_arm=segments)
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
@@ -48,27 +48,27 @@ def save_network_visualization(genome, save_path=None):
     pipeline.algorithm.genome.visualize(network, save_path=save_path)
     
 
-def visualize_neural_network(model_path, save_path=None):
+def visualize_neural_network(model_path, save_path=None,segments=config.NUM_SEGMENTS_PER_ARM):
     genome = load_model(model_path)
-    save_network_visualization(genome, save_path=save_path)
+    save_network_visualization(genome, save_path=save_path,segments=segments)
     
 
-def visualize_model(model_path, save_path=None):
+def visualize_model(model_path, save_path=None,segments=config.NUM_SEGMENTS_PER_ARM):
 
     genome = load_model(model_path)
     #genome = add_segment_to_genome(genome, 1)
     # save_network_visualization(genome)
     # exit(1)
-    problem = BrittleStarEnv()
+    problem = BrittleStarEnv(num_segments_per_arm=segments)
 
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
     
-    visualize_brittlestar(state=state, genome=genome, algorithm=pipeline.algorithm, save_path=save_path)
+    visualize_brittlestar(state=state, genome=genome, algorithm=pipeline.algorithm, save_path=save_path,segments=segments)
 
 
-def visualize_brittlestar(state, genome, algorithm, save_path=None):
+def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
     """Visualize the trained brittlestar model"""
     print("Creating visualization...")
 
@@ -125,7 +125,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
         action = algorithm.forward(state, transformed_genome, obs)
 
-        scaled_action = scale_actions(action)
+        scaled_action = scale_actions(action, num_segments_per_arm=segments)
 
         #print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
         # target_id = env_state.mj_model.body("target").id
@@ -134,7 +134,7 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = get_observation(env_state,targets=target)
+        obs = get_observation(env_state,target)
         
 
         current_distance = env_state.observations["xy_distance_to_target"][0]
@@ -181,9 +181,16 @@ def visualize_brittlestar(state, genome, algorithm, save_path=None):
 
 
 if __name__ == "__main__":
+    model_filename = "best_0_genome_1_seg.pkl"
+    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_3", model_filename)
+    segments = config.NUM_SEGMENTS_PER_ARM
 
-    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_1", "best_1_genome_1_seg.pkl")
+    parts = model_filename.split("_")
+    if len(parts) == 5:
+        num_segments = int(parts[-2])
+        segments = [num_segments] * config.NUM_ARMS
+        config.NUM_SEGMENTS_PER_ARM = segments
 
-    visualize_model(model_path=model_path)
-    #visualize_neural_network(model_path=model_path)
+    visualize_model(model_path=model_path,segments=segments)
+    #visualize_neural_network(model_path=model_path,segments=segments)
     

@@ -87,12 +87,20 @@ class RLEnv(BaseProblem):
         state = state.register(current_generation=0)
         return state
 
-    def evaluate(self, state: State, randkey, act_func: Callable, params):
+    def evaluate(self, state: State, randkey, act_func: Callable, params, shared_key):
         keys = jax.random.split(randkey, self.repeat_times)
         jax.debug.print("Evaluating...")
         # increment state.current_generation
+
+        target_key1, target_key2 = jax.random.split(shared_key)
+        targets = jnp.array([
+            self.generate_target_position(target_key1), 
+            self.generate_target_position(target_key2)
+        ])
+
+
         rewards = vmap(
-            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None)
+            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None,None)
         )(
             state,
             keys,
@@ -100,6 +108,7 @@ class RLEnv(BaseProblem):
             params,
             self.action_policy,
             False,
+            targets,
             self.obs_normalization,
         )
 
@@ -113,10 +122,11 @@ class RLEnv(BaseProblem):
         params,
         action_policy,
         record_episode,
+        targets,
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state,targets = self.reset(rng_reset)
+        init_obs, init_env_state,_ = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)
@@ -131,7 +141,7 @@ class RLEnv(BaseProblem):
             episode = None
 
         def cond_func(carry):
-            _, _, _, done, _, count, _, rk = carry
+            _, _, _, done, _, count, _, rk, _,_ = carry
             return ~done & (count < self.max_step)
 
         def body_func(carry):
@@ -144,6 +154,8 @@ class RLEnv(BaseProblem):
                 count,
                 epis,
                 rk,
+                target,
+                info
             ) = carry  # tr -> total reward; rk -> randkey
 
             if normalize_obs:
@@ -154,9 +166,10 @@ class RLEnv(BaseProblem):
                 action = action_policy(rk, forward_func, obs)
             else:
                 action = act_func(state, params, obs)
-            next_obs, next_env_state, reward, done, _ = self.step(
-                rng, env_state, action,targets
+            next_obs, next_env_state, reward, done, info = self.step(
+                rng, env_state, action, target, info
             )
+
             next_rng, _ = jax.random.split(rng)
 
             if record_episode:
@@ -172,21 +185,45 @@ class RLEnv(BaseProblem):
                 count + 1,
                 epis,
                 jax.random.split(rk)[0],
+                target, 
+                info 
             )
 
-        _, _, _, _, total_reward, _, episode, _ = jax.lax.while_loop(
+        # Also update the tuple unpacking to handle all 9 returned elements
+        _, _, _, _, total_reward2, _, episode, _, _,_ = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs, init_env_state, rng_episode, False, 0.0, 0, episode, randkey),
+            (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {
+                "no_movement_count": 0,
+                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "distance": 0.0,
+                "progress": 0.0,
+                "positioning_activity": 0.0
+            }),
         )
+
+        # Update the second while_loop unpacking as well
+        _, _, _, _, total_reward2, _, _, _, _,_ = jax.lax.while_loop(
+            cond_func,
+            body_func,
+            (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {
+                "no_movement_count": 0,
+                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "distance": 0.0,
+                "progress": 0.0,
+                "positioning_activity": 0.0
+            }),
+        )
+
+        total_reward = jnp.minimum(total_reward2, total_reward2)
 
         if record_episode:
             return total_reward, episode
         else:
             return total_reward
 
-    def step(self, randkey, env_state, action,targets):
-        return self.env_step(randkey, env_state, action,targets)
+    def step(self, randkey, env_state, action,targets, info):
+        return self.env_step(randkey, env_state, action,targets, info)
 
     def reset(self, randkey):
         return self.env_reset(randkey)
