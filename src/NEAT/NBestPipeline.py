@@ -1,4 +1,5 @@
 import time
+import warnings
 from NEAT.tensorneat.Pipeline import Pipeline
 import numpy as np
 import os
@@ -7,11 +8,20 @@ from tensorneat.common import State
 
 
 class NBestPipeline(Pipeline):
-    def __init__(self, *args, n_best: int = 10, **kwargs):
+    def __init__(
+        self,
+        *args,
+        n_best: int = 10,
+        early_stop_distance: float = np.nan,
+        early_stop_patience: int = 10,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.n_best = n_best
         self.best_genomes: list[tuple] = []
         self.best_fitnesses: list[float] = []
+        self.early_stop_distance = early_stop_distance
+        self.early_stop_patience = early_stop_patience
 
     def analysis(self, state: State, pop, fitnesses):
         """Modified analysis method to store top N genomes."""
@@ -114,8 +124,115 @@ class NBestPipeline(Pipeline):
             )
 
     def auto_run(self, state):
-        # Run the parent's auto_run implementation but discard its return value
-        state, _ = super().auto_run(state)
+        """Copied from the original Pipeline class, but with modifications to return the N best genomes. and implement early stopping.
 
-        # Return state and all best genomes instead of just the best one
-        return state, self.best_genomes
+        Args:
+            state (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        print("start compile")
+        tic = time.time()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"The jitted function .* includes a pmap. Using jit-of-pmap can lead to inefficient data movement",
+            )
+            compiled_step = jax.jit(self.step).lower(state).compile()
+
+        consec = 0
+
+        # count how many generations actually run
+        generations = 0
+
+        if self.show_problem_details:
+            self.compiled_pop_transform_func = (
+                jax.jit(jax.vmap(self.algorithm.transform, in_axes=(None, 0)))
+                .lower(state, self.algorithm.ask(state))
+                .compile()
+            )
+
+        print(
+            f"compile finished, cost time: {time.time() - tic:.6f}s",
+        )
+
+        for generation in range(self.generation_limit):
+            generations += 1
+            self.generation_timestamp = time.time()
+
+            # Unpack distances as well
+            state, previous_pop, fitnesses, distances = compiled_step(state)
+
+            fitnesses = jax.device_get(fitnesses)
+            distances = jax.device_get(distances)
+
+            self.analysis(state, previous_pop, fitnesses)
+
+            # Early stopping: use distances just like fitnesses
+            best_distance = np.min(distances)
+            if best_distance <= self.early_stop_distance:
+                consec += 1
+                print(
+                    f"Early stopping check: {consec}/{self.early_stop_distance} generations within {self.early_stop_distance} of target (best distance: {best_distance:.4f})"
+                )
+                if consec >= self.early_stop_patience:
+                    print("Early stopping: patience reached.")
+                    break
+            else:
+                consec = 0
+
+            if max(fitnesses) >= self.fitness_target:
+                print("Fitness limit reached!")
+                break
+
+        if int(state.generation) >= self.generation_limit:
+            print("Generation limit reached!")
+
+        if self.is_save:
+            best_genome = jax.device_get(self.best_genome)
+            with open(os.path.join(self.genome_dir, f"best_genome.npz"), "wb") as f:
+                np.savez(
+                    f,
+                    nodes=best_genome[0],
+                    conns=best_genome[1],
+                    fitness=self.best_fitness,
+                )
+
+        print(f"Took {generations} generations to train")
+
+        return state, self.best_genomes, generations
+
+    def step(self, state: State):
+        """Step function for the pipeline. This function is called in a loop to run the NEAT algorithm.
+
+        Args:
+            state (State): The current state of the NEAT algorithm.
+
+        Returns:
+            State: The updated state after one step.
+        """
+        # Call the original step function
+        state, previous_pop, fitnesses = super().step(state)
+
+        if (
+            hasattr(self, "compiled_pop_transform_func")
+            and self.compiled_pop_transform_func is not None
+        ):
+            pop_transformed = self.compiled_pop_transform_func(state, previous_pop)
+        else:
+            pop_transformed = jax.vmap(self.algorithm.transform, in_axes=(None, 0))(
+                state, previous_pop
+            )
+
+        self.compiled_compute_distance = jax.jit(
+            jax.vmap(
+                lambda params: self.problem.compute_distance(
+                    state, params, self.algorithm.forward
+                )
+            )
+        )
+        distances = self.compiled_compute_distance(pop_transformed)
+
+        return state, previous_pop, fitnesses, distances

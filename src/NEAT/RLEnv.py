@@ -8,7 +8,6 @@ from tensorneat.problem.base import BaseProblem
 from tensorneat.common import State
 
 
-
 class RLEnv(BaseProblem):
     jitable = True
 
@@ -36,6 +35,7 @@ class RLEnv(BaseProblem):
         self.max_step = max_step
         self.repeat_times = repeat_times
         self.action_policy = action_policy
+        self._last_evaluation_info = None  # Store last evaluation info
 
         if obs_normalization:
             assert sample_policy is not None, "sample_policy must be provided"
@@ -63,7 +63,9 @@ class RLEnv(BaseProblem):
 
             rewards, episodes = jax.jit(vmap(sample))(keys)
 
-            obs = jax.device_get(episodes["obs"])  # shape: (sample_episodes, max_step, *input_shape)
+            obs = jax.device_get(
+                episodes["obs"]
+            )  # shape: (sample_episodes, max_step, *input_shape)
             obs = obs.reshape(
                 -1, *self.input_shape
             )  # shape: (sample_episodes * max_step, *input_shape)
@@ -93,14 +95,15 @@ class RLEnv(BaseProblem):
         # increment state.current_generation
 
         target_key1, target_key2 = jax.random.split(shared_key)
-        targets = jnp.array([
-            self.generate_target_position(target_key1), 
-            self.generate_target_position(target_key2)
-        ])
-
+        targets = jnp.array(
+            [
+                self.generate_target_position(target_key1),
+                self.generate_target_position(target_key2),
+            ]
+        )
 
         rewards = vmap(
-            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None,None)
+            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None, None)
         )(
             state,
             keys,
@@ -126,7 +129,7 @@ class RLEnv(BaseProblem):
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state,_ = self.reset(rng_reset)
+        init_obs, init_env_state, _ = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)
@@ -141,22 +144,13 @@ class RLEnv(BaseProblem):
             episode = None
 
         def cond_func(carry):
-            _, _, _, done, _, count, _, rk, _,_ = carry
+            _, _, _, done, _, count, _, rk, _, _ = carry
             return ~done & (count < self.max_step)
 
         def body_func(carry):
-            (
-                obs,
-                env_state,
-                rng,
-                done,
-                tr,
-                count,
-                epis,
-                rk,
-                target,
-                info
-            ) = carry  # tr -> total reward; rk -> randkey
+            (obs, env_state, rng, done, tr, count, epis, rk, target, info) = (
+                carry  # tr -> total reward; rk -> randkey
+            )
 
             if normalize_obs:
                 obs = norm_obs(state, obs)
@@ -185,45 +179,44 @@ class RLEnv(BaseProblem):
                 count + 1,
                 epis,
                 jax.random.split(rk)[0],
-                target, 
-                info 
+                target,
+                info,
             )
 
         # Also update the tuple unpacking to handle all 9 returned elements
-        _, _, _, _, total_reward2, _, episode, _, _,_ = jax.lax.while_loop(
+        _, _, _, _, total_reward, _, _, _, _, info = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {
-                "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
-                "distance": 0.0,
-                "progress": 0.0,
-                "positioning_activity": 0.0
-            }),
+            (
+                init_obs[0],
+                init_env_state,
+                rng_episode,
+                False,
+                0.0,
+                0,
+                episode,
+                randkey,
+                targets[0],
+                {
+                    "no_movement_count": 0,
+                    "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                    "distance": 0.0,
+                    "progress": 0.0,
+                    "positioning_activity": 0.0,
+                },
+            ),
         )
 
-        # Update the second while_loop unpacking as well
-        _, _, _, _, total_reward2, _, _, _, _,_ = jax.lax.while_loop(
-            cond_func,
-            body_func,
-            (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {
-                "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
-                "distance": 0.0,
-                "progress": 0.0,
-                "positioning_activity": 0.0
-            }),
-        )
-
-        total_reward = jnp.minimum(total_reward2, total_reward2)
+        # Store the latest info for access by the pipeline
+        self._last_evaluation_info = dict(info)
 
         if record_episode:
             return total_reward, episode
         else:
             return total_reward
 
-    def step(self, randkey, env_state, action,targets, info):
-        return self.env_step(randkey, env_state, action,targets, info)
+    def step(self, randkey, env_state, action, targets, info):
+        return self.env_step(randkey, env_state, action, targets, info)
 
     def reset(self, randkey):
         return self.env_reset(randkey)
@@ -244,6 +237,47 @@ class RLEnv(BaseProblem):
 
     def show(self, state, randkey, act_func, params, *args, **kwargs):
         raise NotImplementedError
+
+    def get_observation(self, env_state):
+        """Get observation from environment state"""
+        # This is a simplified version - adjust according to your actual observation logic
+        return env_state.observations
+
+    def compute_distance(self, state, params, act_func):
+        randkey = state.randkey
+        (obs, _), env_state, targets = self.env_reset(randkey)
+        target = targets[0]
+
+        def cond_fn(carry):
+            obs, env_state, step_count, done, info = carry
+            return (~done) & (step_count < self.max_step)
+
+        def body_fn(carry):
+            obs, env_state, step_count, done, info = carry
+            action = act_func(state, params, obs)
+            obs, env_state, reward, done, info = self.env_step(
+                randkey, env_state, action, target, info
+            )
+            return obs, env_state, step_count + 1, done, info
+
+        # Initial carry
+        info = {
+            "no_movement_count": jnp.zeros((), dtype=jnp.int32),
+            "prev_arm_orientations": jnp.zeros(5),
+            "distance": jnp.array(0.0),
+            "progress": jnp.array(0.0),
+            "positioning_activity": jnp.array(0.0),
+        }
+        done = jnp.array(False)
+        step_count = jnp.array(0)
+
+        obs, env_state, step_count, done, info = jax.lax.while_loop(
+            cond_fn,
+            body_fn,
+            (obs, env_state, step_count, done, info),
+        )
+
+        return info["distance"]
 
 
 def norm_obs(state, obs):
