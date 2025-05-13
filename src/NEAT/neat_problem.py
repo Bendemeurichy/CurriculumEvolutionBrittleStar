@@ -72,14 +72,8 @@ class BrittleStarEnv(RLEnv):
         num_actuators = actuator_forces.size
         energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
 
-        # More balanced energy penalty - less punishing at the beginning
-        energy_penalty = energy_usage * 0.1
-        #reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
-
-
-        
+        # Track no movement count
         no_movement_count = info["no_movement_count"]
-
         no_movement_count = jax.lax.cond(
             disk_velocity < 0.05,
             lambda _: no_movement_count + 1,
@@ -87,17 +81,43 @@ class BrittleStarEnv(RLEnv):
             operand=None
         )
         
+        # Components of the reward
+        # 1. Base distance component (negative to minimize)
+        distance_reward = -distance * 0.5
+        
+        # 2. Progress reward (strongly encourage moving toward the target)
+        progress_reward = progress * 5.0
+        
+        # 3. Velocity reward (encourage movement up to a reasonable speed)
+        velocity_reward = jnp.minimum(disk_velocity, 0.8) * 0.3
+        
+        # 4. Energy efficiency (small penalty for excessive force)
+        energy_penalty = jnp.clip(energy_usage * 0.05, 0.0, 0.5)
+        
+        # 5. Direction bonus (reward moving in direction of target)
+        if disk_velocity > 0.05:
+            velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (disk_velocity + 1e-8)
+            target_direction = (target[:2] - disk_position) / (distance + 1e-8)
+            alignment = jnp.dot(velocity_direction, target_direction)
+            direction_bonus = jnp.maximum(alignment, 0) * 0.5
+        else:
+            direction_bonus = 0.0
+        
+        # 6. Penalty for being stuck
+        stuck_penalty = jnp.maximum(0, no_movement_count - 10) * 0.05
+        
+        # 7. Proximity bonus (extra reward for getting very close)
+        proximity_bonus = jnp.where(distance < 1.0, (1.0 - distance) * 2.0, 0.0)
+        
+        # Combine all reward components
+        reward = distance_reward + progress_reward + velocity_reward - energy_penalty + direction_bonus - stuck_penalty + proximity_bonus
+        
+        # Success bonus
+        success_bonus = jnp.where(distance < 0.2, 10.0, 0.0)
+        reward += success_bonus
 
-        reward = -distance * energy_usage - jnp.maximum(0,no_movement_count - 25)*0.1
-
-        #jax.debug.print("({}) {} - {} = {} ", no_movement_count, -distance * energy_usage, jnp.maximum(0,no_movement_count - 20)*0.1, reward)
-
-
-        # Bonus reward for getting very close to target
-        # reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
-
-        done = jnp.array(distance < 0.1)  
-
+        # Terminal condition
+        done = jnp.array(distance < 0.1)
 
         info = {
             "no_movement_count": no_movement_count
@@ -124,7 +144,7 @@ class BrittleStarEnv(RLEnv):
         ])
         
         obs1 = get_observation(env_state, targets[0])
-        obs2 = get_observation(env_state, targets[0])
+        obs2 = get_observation(env_state, targets[1])
         return (obs1, obs2), env_state, targets
     
     def generate_target_position(self,rng) -> jnp.ndarray:
