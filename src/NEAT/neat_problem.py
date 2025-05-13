@@ -46,6 +46,7 @@ class BrittleStarEnv(RLEnv):
 
     def env_step(self, randkey, env_state, action, target, info):
         """Step the environment with the given action"""
+
         scaled_action = scale_actions(action, num_segments_per_arm=self.num_segments_per_arm)
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)

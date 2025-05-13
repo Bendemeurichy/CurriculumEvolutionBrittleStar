@@ -1,5 +1,5 @@
 import time
-from tensorneat.pipeline import Pipeline
+from NEAT.tensorneat.Pipeline import Pipeline
 import numpy as np
 import os
 import jax

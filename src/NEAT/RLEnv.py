@@ -87,12 +87,20 @@ class RLEnv(BaseProblem):
         state = state.register(current_generation=0)
         return state
 
-    def evaluate(self, state: State, randkey, act_func: Callable, params):
+    def evaluate(self, state: State, randkey, act_func: Callable, params, shared_key):
         keys = jax.random.split(randkey, self.repeat_times)
         jax.debug.print("Evaluating...")
         # increment state.current_generation
+
+        target_key1, target_key2 = jax.random.split(shared_key)
+        targets = jnp.array([
+            self.generate_target_position(target_key1), 
+            self.generate_target_position(target_key2)
+        ])
+
+
         rewards = vmap(
-            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None)
+            self._evaluate_once, in_axes=(None, 0, None, None, None, None, None,None)
         )(
             state,
             keys,
@@ -100,6 +108,7 @@ class RLEnv(BaseProblem):
             params,
             self.action_policy,
             False,
+            targets,
             self.obs_normalization,
         )
 
@@ -113,10 +122,11 @@ class RLEnv(BaseProblem):
         params,
         action_policy,
         record_episode,
+        targets,
         normalize_obs=False,
     ):
         rng_reset, rng_episode = jax.random.split(randkey)
-        init_obs, init_env_state,targets = self.reset(rng_reset)
+        init_obs, init_env_state,_ = self.reset(rng_reset)
 
         if record_episode:
             obs_array = jnp.full((self.max_step, *self.input_shape), jnp.nan)

@@ -134,7 +134,7 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = get_observation(env_state,targets=target)
+        obs = get_observation(env_state,target)
         
 
         current_distance = env_state.observations["xy_distance_to_target"][0]
@@ -181,8 +181,8 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
 
 if __name__ == "__main__":
-    model_filename = "best_4_genome_4_seg.pkl"
-    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_2", model_filename)
+    model_filename = "best_0_genome_1_seg.pkl"
+    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_3", model_filename)
     segments = config.NUM_SEGMENTS_PER_ARM
 
     parts = model_filename.split("_")
