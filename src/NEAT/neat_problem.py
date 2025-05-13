@@ -72,7 +72,7 @@ class BrittleStarEnv(RLEnv):
         num_actuators = actuator_forces.size
         energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
 
-        # Track no movement count
+        # Track no movement count but add additional metrics
         no_movement_count = info["no_movement_count"]
         no_movement_count = jax.lax.cond(
             disk_velocity < 0.05,
@@ -80,6 +80,12 @@ class BrittleStarEnv(RLEnv):
             lambda _: 0,
             operand=None
         )
+        
+        # Track productive vs unproductive stillness
+        # Add orientation change to detect if the brittlestar is repositioning while still
+        arm_orientations = next_env_state.observations.get("arm_orientations", jnp.zeros(5))
+        prev_arm_orientations = info.get("prev_arm_orientations", arm_orientations)
+        orientation_change = jnp.sum(jnp.abs(arm_orientations - prev_arm_orientations))
         
         # Components of the reward
         # 1. Base distance component (negative to minimize)
@@ -95,16 +101,22 @@ class BrittleStarEnv(RLEnv):
         energy_penalty = jnp.clip(energy_usage * 0.05, 0.0, 0.5)
         
         # 5. Direction bonus (reward moving in direction of target)
-        if disk_velocity > 0.05:
-            velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (disk_velocity + 1e-8)
-            target_direction = (target[:2] - disk_position) / (distance + 1e-8)
-            alignment = jnp.dot(velocity_direction, target_direction)
-            direction_bonus = jnp.maximum(alignment, 0) * 0.5
-        else:
-            direction_bonus = 0.0
+        velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (disk_velocity + 1e-8)
+        target_direction = (target[:2] - disk_position) / (distance + 1e-8)
+        alignment = jnp.dot(velocity_direction, target_direction)
+        direction_bonus = jax.lax.cond(
+            disk_velocity > 0.05,
+            lambda _: jnp.maximum(alignment, 0) * 0.5,
+            lambda _: jnp.array(0.0),
+            operand=None
+        )
         
-        # 6. Penalty for being stuck
-        stuck_penalty = jnp.maximum(0, no_movement_count - 10) * 0.05
+        # 6. Modified stuck penalty - only penalize if both velocity is low AND there's minimal repositioning
+        # Allow up to 20 timesteps of standing still before penalties begin
+        # Reduce penalty when there's significant arm movement (positioning)
+        positioning_activity = jnp.minimum(orientation_change * 2.0, 1.0)  # Cap the positioning bonus
+        effective_idle_count = jnp.maximum(0, no_movement_count - 20)
+        stuck_penalty = jnp.maximum(0, effective_idle_count * 0.03) * (1.0 - positioning_activity)
         
         # 7. Proximity bonus (extra reward for getting very close)
         proximity_bonus = jnp.where(distance < 1.0, (1.0 - distance) * 2.0, 0.0)
@@ -119,8 +131,13 @@ class BrittleStarEnv(RLEnv):
         # Terminal condition
         done = jnp.array(distance < 0.1)
 
+        # Update info with relevant metrics
         info = {
-            "no_movement_count": no_movement_count
+            "no_movement_count": no_movement_count,
+            "prev_arm_orientations": arm_orientations,
+            "distance": distance,
+            "progress": progress,
+            "positioning_activity": positioning_activity
         }
 
         return obs, next_env_state, reward, done, info
