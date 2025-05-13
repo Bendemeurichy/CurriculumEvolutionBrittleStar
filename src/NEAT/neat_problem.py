@@ -44,7 +44,7 @@ class BrittleStarEnv(RLEnv):
 
         self._input_dims, self._output_dims = get_environment_dims(env, env_state)
 
-    def env_step(self, randkey, env_state, action, target):
+    def env_step(self, randkey, env_state, action, target, info):
         """Step the environment with the given action"""
         scaled_action = scale_actions(action, num_segments_per_arm=self.num_segments_per_arm)
 
@@ -73,15 +73,35 @@ class BrittleStarEnv(RLEnv):
         energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
 
         # More balanced energy penalty - less punishing at the beginning
-        energy_penalty = energy_usage * 0.05
-        reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
+        energy_penalty = energy_usage * 0.1
+        #reward = -distance + progress * 3.0 + jnp.minimum(disk_velocity, 0.5) * 0.2 - energy_penalty
+
+
         
+        no_movement_count = info["no_movement_count"]
+
+        no_movement_count = jax.lax.cond(
+            disk_velocity < 0.05,
+            lambda _: no_movement_count + 1,
+            lambda _: 0,
+            operand=None
+        )
+        
+
+        reward = -distance * energy_usage - jnp.maximum(0,no_movement_count - 25)*0.1
+
+        #jax.debug.print("({}) {} - {} = {} ", no_movement_count, -distance * energy_usage, jnp.maximum(0,no_movement_count - 20)*0.1, reward)
+
+
         # Bonus reward for getting very close to target
         # reward = jnp.where(distance < 0.5, reward + (0.5 - distance) * 5.0, reward)
 
         done = jnp.array(distance < 0.1)  
 
-        info = {}
+
+        info = {
+            "no_movement_count": no_movement_count
+        }
 
         return obs, next_env_state, reward, done, info
 

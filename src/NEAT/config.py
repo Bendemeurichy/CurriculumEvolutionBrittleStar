@@ -1,7 +1,7 @@
 # General simulation parameters
-NUM_GENERATIONS = 150
+NUM_GENERATIONS = 75
 NUM_ARMS = 5
-NUM_SEGMENTS_PER_ARM = 4  # Number of segments per arm
+NUM_SEGMENTS_PER_ARM = 1  # Number of segments per arm
 SIMULATION_DURATION = 40  # Simulation duration in seconds
 
 MAX_STEPS_TRAINING = 400  # Maximum steps for training

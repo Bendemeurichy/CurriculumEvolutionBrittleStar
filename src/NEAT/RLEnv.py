@@ -131,7 +131,7 @@ class RLEnv(BaseProblem):
             episode = None
 
         def cond_func(carry):
-            _, _, _, done, _, count, _, rk, _ = carry
+            _, _, _, done, _, count, _, rk, _,_ = carry
             return ~done & (count < self.max_step)
 
         def body_func(carry):
@@ -144,7 +144,8 @@ class RLEnv(BaseProblem):
                 count,
                 epis,
                 rk,
-                target
+                target,
+                info
             ) = carry  # tr -> total reward; rk -> randkey
 
             if normalize_obs:
@@ -155,8 +156,8 @@ class RLEnv(BaseProblem):
                 action = action_policy(rk, forward_func, obs)
             else:
                 action = act_func(state, params, obs)
-            next_obs, next_env_state, reward, done, _ = self.step(
-                rng, env_state, action, target
+            next_obs, next_env_state, reward, done, info = self.step(
+                rng, env_state, action, target, info
             )
 
             next_rng, _ = jax.random.split(rng)
@@ -174,21 +175,22 @@ class RLEnv(BaseProblem):
                 count + 1,
                 epis,
                 jax.random.split(rk)[0],
-                target,  # Add the target element back to the return tuple
+                target, 
+                info 
             )
 
         # Also update the tuple unpacking to handle all 9 returned elements
-        _, _, _, _, total_reward2, _, episode, _, _ = jax.lax.while_loop(
+        _, _, _, _, total_reward2, _, episode, _, _,_ = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0]),
+            (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {"no_movement_count": 0}),
         )
 
         # Update the second while_loop unpacking as well
-        _, _, _, _, total_reward2, _, _, _, _ = jax.lax.while_loop(
+        _, _, _, _, total_reward2, _, _, _, _,_ = jax.lax.while_loop(
             cond_func,
             body_func,
-            (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1]),
+            (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {"no_movement_count": 0}),
         )
 
         total_reward = jnp.minimum(total_reward2, total_reward2)
@@ -198,8 +200,8 @@ class RLEnv(BaseProblem):
         else:
             return total_reward
 
-    def step(self, randkey, env_state, action,targets):
-        return self.env_step(randkey, env_state, action,targets)
+    def step(self, randkey, env_state, action,targets, info):
+        return self.env_step(randkey, env_state, action,targets, info)
 
     def reset(self, randkey):
         return self.env_reset(randkey)
