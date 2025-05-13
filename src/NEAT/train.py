@@ -98,6 +98,36 @@ def train_neat_curriculum():
             arm_count=config.NUM_ARMS,
         )
 
+def train_neat_no_curriculum():
+    config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
+    problem = BrittleStarEnv()
+    pipeline = init_pipeline(problem)
+    state = pipeline.setup()
+
+    for i in range(1, 6):
+        print(
+            f"Starting NEAT training for brittle star locomotion with {i} segments..."
+        )
+
+        num_inputs, num_outputs = problem._input_dims, problem._output_dims
+        print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
+
+        state, best_genomes = pipeline.auto_run(state)
+
+        for j, genome in enumerate(best_genomes):
+            save_genome(
+                genome, output_dir="./models", filename=f"best_{j}_genome_{i}_seg.pkl"
+            )
+
+        config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
+        print(
+            f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
+        )
+        problem = BrittleStarEnv(num_segments_per_arm=[i + 1]*config.NUM_ARMS)
+        pipeline = init_pipeline(problem)
+        state = pipeline.setup()
+        print("Initializing TensorNEAT state...")
+
 
 if __name__ == "__main__":
     # train_neat_controller()
