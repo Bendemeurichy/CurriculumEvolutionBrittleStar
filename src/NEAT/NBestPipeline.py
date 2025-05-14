@@ -17,6 +17,7 @@ class NBestPipeline(Pipeline):
         early_stop_patience: int = 10,
         **kwargs,
     ):
+    
         super().__init__(*args, **kwargs)
         self.n_best = n_best
         self.best_genomes: list[tuple] = []
@@ -130,7 +131,7 @@ class NBestPipeline(Pipeline):
                 state, state.randkey, self.algorithm.forward, pop_transformed
             )
 
-    def auto_run(self, state):
+    def auto_run(self, state:State) -> tuple[State, list[tuple], int]:
         """Copied from the original Pipeline class, but with modifications to return the N best genomes. and implement early stopping.
 
         Args:
@@ -211,7 +212,7 @@ class NBestPipeline(Pipeline):
 
         return state, self.best_genomes, generations
 
-    def step(self, state: State):
+    def step(self, state: State) -> tuple[State, list[tuple], jnp.ndarray, jnp.ndarray]:
         """Step function for the pipeline. This function is called in a loop to run the NEAT algorithm.
 
         Args:
@@ -223,4 +224,4 @@ class NBestPipeline(Pipeline):
         # Call the original step function
         state, previous_pop, fitnesses, distances = super().step(state)
 
-        return state, previous_pop, fitnesses, jnp.array([distances.mean()])
+        return state, previous_pop, fitnesses, distances

@@ -62,6 +62,7 @@ def train_neat_controller(extend_genome=True):
 def train_neat_curriculum():
     config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
     problem = BrittleStarEnv()
+    
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 

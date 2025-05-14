@@ -187,10 +187,6 @@ def initialize_simulation(
         rng = jax.random.PRNGKey(seed=seed)
         state = jax.jit(env.reset)(rng=rng)
 
-
-    # Reset environment
-    
-
     return env, state, environment_configuration
 
 

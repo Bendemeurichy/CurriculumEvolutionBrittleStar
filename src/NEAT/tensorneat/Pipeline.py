@@ -25,7 +25,6 @@ class Pipeline(StatefulBaseClass):
         using_multidevice: bool = False,
     ):
         assert problem.jitable, "Currently, problem must be jitable"
-
         self.algorithm = algorithm
         self.problem = problem
         self.seed = seed
@@ -82,7 +81,7 @@ class Pipeline(StatefulBaseClass):
         print("initializing finished")
         return state
 
-    def step(self, state):
+    def step(self, state:State):
         """
         returns: 
             state, previous_pop, fitnesses
@@ -134,7 +133,7 @@ class Pipeline(StatefulBaseClass):
 
         return state.update(randkey=randkey), previous_pop, fitnesses,distances
 
-    def auto_run(self, state):
+    def auto_run(self, state:State) -> tuple[State, tuple]:
         print("start compile")
         tic = time.time()
         with warnings.catch_warnings():
