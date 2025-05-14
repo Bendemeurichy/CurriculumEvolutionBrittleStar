@@ -187,28 +187,31 @@ class RLEnv(BaseProblem):
         _, _, _, _, total_reward, _, _, _, _, info = jax.lax.while_loop(
             cond_func,
             body_func,
-            (
-                init_obs[0],
-                init_env_state,
-                rng_episode,
-                False,
-                0.0,
-                0,
-                episode,
-                randkey,
-                targets[0],
-                {
-                    "no_movement_count": 0,
-                    "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
-                    "distance": 0.0,
-                    "progress": 0.0,
-                    "positioning_activity": 0.0,
-                },
-            ),
+            (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {
+                "no_movement_count": 0,
+                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "distance": 0.0,
+                "progress": 0.0,
+                "positioning_activity": 0.0,
+                "velocity": 0
+            }),
         )
 
-        # Store the latest info for access by the pipeline
-        self._last_evaluation_info = dict(info)
+        # Update the second while_loop unpacking as well
+        _, _, _, _, total_reward2, _, _, _, _,_ = jax.lax.while_loop(
+            cond_func,
+            body_func,
+            (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {
+                "no_movement_count": 0,
+                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "distance": 0.0,
+                "progress": 0.0,
+                "positioning_activity": 0.0,
+                "velocity": 0
+            }),
+        )
+
+        total_reward = jnp.minimum(total_reward2, total_reward2)
 
         if record_episode:
             return total_reward, episode

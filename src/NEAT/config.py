@@ -1,5 +1,5 @@
 # General simulation parameters
-NUM_GENERATIONS = 35
+NUM_GENERATIONS = 50
 NUM_ARMS = 5
 NUM_SEGMENTS_PER_ARM = 1  # Number of segments per arm
 SIMULATION_DURATION = 40  # Simulation duration in seconds
@@ -19,7 +19,7 @@ TARGET_POSITION = (
 NUM_PHYSICS_STEPS_PER_CONTROL_STEP = 10  # How many physics steps per action
 
 # NEAT algorithm parameters
-POPULATION_SIZE = 50  # Population size for NEAT | the overall number of genomes (neural networks) in your entire population that will evolve over generations.
+POPULATION_SIZE = 30  # Population size for NEAT | the overall number of genomes (neural networks) in your entire population that will evolve over generations.
 SPECIES_SIZE = 10  # Number of species in the population | number of species the algorithm should maintain.
 
 SEED = 500
