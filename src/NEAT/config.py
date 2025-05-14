@@ -1,5 +1,5 @@
 # General simulation parameters
-NUM_GENERATIONS = 50
+NUM_GENERATIONS = 150
 NUM_ARMS = 5
 NUM_SEGMENTS_PER_ARM = 1  # Number of segments per arm
 SIMULATION_DURATION = 40  # Simulation duration in seconds
