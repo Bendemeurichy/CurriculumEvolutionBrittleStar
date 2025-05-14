@@ -50,7 +50,7 @@ def train_neat_controller(extend_genome=True):
             arm_count=5,
         )
 
-    state, best_genomes = pipeline.auto_run(state)
+    state, best_genomes, generations = pipeline.auto_run(state)
     print(f"Top {len(best_genomes)} genomes:")
     print("Evolution completed successfully")
     if best_genomes is not None:
@@ -73,7 +73,7 @@ def train_neat_curriculum():
         num_inputs, num_outputs = problem._input_dims, problem._output_dims
         print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
 
-        state, best_genomes = pipeline.auto_run(state)
+        state, best_genomes, generations = pipeline.auto_run(state)
 
         for j, genome in enumerate(best_genomes):
             save_genome(
@@ -81,9 +81,7 @@ def train_neat_curriculum():
             )
 
         config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
-        config.NUM_GENERATIONS = int(
-            config.NUM_GENERATIONS / 2
-        )  # TODO: remove this when we added early stopping
+
         print(
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
@@ -115,7 +113,7 @@ def train_neat_no_curriculum():
         num_inputs, num_outputs = problem._input_dims, problem._output_dims
         print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
 
-        state, best_genomes = pipeline.auto_run(state)
+        state, best_genomes, generations = pipeline.auto_run(state)
 
         for j, genome in enumerate(best_genomes):
             save_genome(

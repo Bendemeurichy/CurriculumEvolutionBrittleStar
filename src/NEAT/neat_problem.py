@@ -1,13 +1,15 @@
 from environment import initialize_simulation
 import jax
 import jax.numpy as jnp
+
 # from tensorneat.problem.rl.rl_jit import RLEnv
 from NEAT.neat_controller import scale_actions, get_observation, get_environment_dims
 
-import NEAT.config as config 
+import NEAT.config as config
 from NEAT.RLEnv import RLEnv
 
 counter = 0
+
 
 class BrittleStarEnv(RLEnv):
     jitable = True
@@ -32,9 +34,8 @@ class BrittleStarEnv(RLEnv):
             simulation_time=simulation_time,
             time_scale=time_scale,
             target_distance=target_distance,
-            
             num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
-            seed=config.SEED
+            seed=config.SEED,
         )
 
         self.env = env
@@ -47,27 +48,30 @@ class BrittleStarEnv(RLEnv):
     def env_step(self, randkey, env_state, action, target, info):
         """Step the environment with the given action"""
 
-        scaled_action = scale_actions(action, num_segments_per_arm=self.num_segments_per_arm)
+        scaled_action = scale_actions(
+            action, num_segments_per_arm=self.num_segments_per_arm
+        )
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
         obs = get_observation(next_env_state, target)
-        
-                
+
         # Calculate distance to the specified target
         disk_position = next_env_state.observations["disk_position"][:2]
         distance = jnp.linalg.norm(disk_position - target[:2])
-        
+
         # Calculate previous distance for progress calculation
         prev_disk_position = env_state.observations["disk_position"][:2]
         prev_distance = jnp.linalg.norm(prev_disk_position - target[:2])
-        
+
         # Calculate progress toward target (positive when getting closer)
         progress = prev_distance - distance
-        
+
         # Calculate total movement (to prevent staying still)
-        disk_velocity = jnp.linalg.norm(next_env_state.observations["disk_linear_velocity"][:2])
-        
+        disk_velocity = jnp.linalg.norm(
+            next_env_state.observations["disk_linear_velocity"][:2]
+        )
+
         # Calculate energy usage (sum of absolute actuator forces)
         actuator_forces = next_env_state.observations["actuator_force"]
         num_actuators = actuator_forces.size
@@ -79,52 +83,68 @@ class BrittleStarEnv(RLEnv):
             disk_velocity < 0.05,
             lambda _: no_movement_count + 1,
             lambda _: 0,
-            operand=None
+            operand=None,
         )
-        
+
         # Track productive vs unproductive stillness
         # Add orientation change to detect if the brittlestar is repositioning while still
-        arm_orientations = next_env_state.observations.get("arm_orientations", jnp.zeros(5))
+        arm_orientations = next_env_state.observations.get(
+            "arm_orientations", jnp.zeros(5)
+        )
         prev_arm_orientations = info.get("prev_arm_orientations", arm_orientations)
         orientation_change = jnp.sum(jnp.abs(arm_orientations - prev_arm_orientations))
-        
+
         # Components of the reward
         # 1. Base distance component (negative to minimize)
         distance_reward = -distance * 0.5
-        
+
         # 2. Progress reward (strongly encourage moving toward the target)
         progress_reward = progress * 5.0
-        
+
         # 3. Velocity reward (encourage movement up to a reasonable speed)
         velocity_reward = jnp.minimum(disk_velocity, 0.8) * 0.3
-        
+
         # 4. Energy efficiency (small penalty for excessive force)
         energy_penalty = jnp.clip(energy_usage * 0.05, 0.0, 0.5)
-        
+
         # 5. Direction bonus (reward moving in direction of target)
-        velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (disk_velocity + 1e-8)
+        velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (
+            disk_velocity + 1e-8
+        )
         target_direction = (target[:2] - disk_position) / (distance + 1e-8)
         alignment = jnp.dot(velocity_direction, target_direction)
         direction_bonus = jax.lax.cond(
             disk_velocity > 0.05,
             lambda _: jnp.maximum(alignment, 0) * 0.5,
             lambda _: jnp.array(0.0),
-            operand=None
+            operand=None,
         )
-        
+
         # 6. Modified stuck penalty - only penalize if both velocity is low AND there's minimal repositioning
         # Allow up to 20 timesteps of standing still before penalties begin
         # Reduce penalty when there's significant arm movement (positioning)
-        positioning_activity = jnp.minimum(orientation_change * 2.0, 1.0)  # Cap the positioning bonus
+        positioning_activity = jnp.minimum(
+            orientation_change * 2.0, 1.0
+        )  # Cap the positioning bonus
         effective_idle_count = jnp.maximum(0, no_movement_count - 20)
-        stuck_penalty = jnp.maximum(0, effective_idle_count * 0.03) * (1.0 - positioning_activity)
-        
+        stuck_penalty = jnp.maximum(0, effective_idle_count * 0.03) * (
+            1.0 - positioning_activity
+        )
+
         # 7. Proximity bonus (extra reward for getting very close)
         proximity_bonus = jnp.where(distance < 1.0, (1.0 - distance) * 2.0, 0.0)
-        
+
         # Combine all reward components
-        reward = distance_reward + progress_reward + velocity_reward - energy_penalty + direction_bonus - stuck_penalty + proximity_bonus
-        
+        reward = (
+            distance_reward
+            + progress_reward
+            + velocity_reward
+            - energy_penalty
+            + direction_bonus
+            - stuck_penalty
+            + proximity_bonus
+        )
+
         # Success bonus
         success_bonus = jnp.where(distance < 0.2, 10.0, 0.0)
         reward += success_bonus
@@ -138,7 +158,7 @@ class BrittleStarEnv(RLEnv):
             "prev_arm_orientations": arm_orientations,
             "distance": distance,
             "progress": progress,
-            "positioning_activity": positioning_activity
+            "positioning_activity": positioning_activity,
         }
 
         return obs, next_env_state, reward, done, info
@@ -147,31 +167,35 @@ class BrittleStarEnv(RLEnv):
         """Reset the environment"""
         # Generate new randkey for target placement
         target_key = jax.random.fold_in(randkey, 0)
-        
+
         if config.TARGET_POSITION is not None:
-            env_state = self.env.reset(rng=randkey, target_position=config.TARGET_POSITION)
+            env_state = self.env.reset(
+                rng=randkey, target_position=config.TARGET_POSITION
+            )
         else:
             # Reset with random target position
             env_state = self.env.reset(rng=target_key)
 
         # Create separate random keys for each target
         target_key1, target_key2 = jax.random.split(randkey)
-        targets = jnp.array([
-            self.generate_target_position(target_key1), 
-            self.generate_target_position(target_key2)
-        ])
-        
+        targets = jnp.array(
+            [
+                self.generate_target_position(target_key1),
+                self.generate_target_position(target_key2),
+            ]
+        )
+
         obs1 = get_observation(env_state, targets[0])
         obs2 = get_observation(env_state, targets[1])
         return (obs1, obs2), env_state, targets
-    
-    def generate_target_position(self,rng) -> jnp.ndarray:
-            angle = jax.random.uniform(key=rng, shape=(), minval=0, maxval=jnp.pi * 2)
-            radius = self.env.environment_configuration.target_distance
-            random_position = jnp.array(
-                [radius * jnp.cos(angle), radius * jnp.sin(angle), 0.05]
-            )
-            return random_position
+
+    def generate_target_position(self, rng) -> jnp.ndarray:
+        angle = jax.random.uniform(key=rng, shape=(), minval=0, maxval=jnp.pi * 2)
+        radius = self.env.environment_configuration.target_distance
+        random_position = jnp.array(
+            [radius * jnp.cos(angle), radius * jnp.sin(angle), 0.05]
+        )
+        return random_position
 
     @property
     def input_shape(self):
