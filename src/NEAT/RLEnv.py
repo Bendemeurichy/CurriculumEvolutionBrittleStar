@@ -90,7 +90,6 @@ class RLEnv(BaseProblem):
 
     def evaluate(self, state: State, randkey, act_func: Callable, params, shared_key):
         keys = jax.random.split(randkey, self.repeat_times)
-        jax.debug.print("Evaluating...")
         # increment state.current_generation
 
         target_key1, target_key2 = jax.random.split(shared_key)
@@ -101,7 +100,7 @@ class RLEnv(BaseProblem):
             ]
         )
 
-        rewards = vmap(
+        rewards, distances = vmap(
             self._evaluate_once, in_axes=(None, 0, None, None, None, None, None, None)
         )(
             state,
@@ -114,7 +113,7 @@ class RLEnv(BaseProblem):
             self.obs_normalization,
         )
 
-        return rewards.mean()
+        return rewards.mean(), distances
 
     def _evaluate_once(
         self,
@@ -183,12 +182,12 @@ class RLEnv(BaseProblem):
             )
 
         # Also update the tuple unpacking to handle all 9 returned elements
-        _, _, _, _, total_reward, _, _, _, _, info = jax.lax.while_loop(
+        _, _, _, _, total_reward, _, _, _, _, info1 = jax.lax.while_loop(
             cond_func,
             body_func,
             (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {
                 "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "prev_arm_orientations": jnp.zeros(5), 
                 "distance": 0.0,
                 "progress": 0.0,
                 "positioning_activity": 0.0
@@ -196,23 +195,24 @@ class RLEnv(BaseProblem):
         )
 
         # Update the second while_loop unpacking as well
-        _, _, _, _, total_reward2, _, _, _, _, _ = jax.lax.while_loop(
+        _, _, _, _, total_reward2, _, _, _, _, info2 = jax.lax.while_loop(
             cond_func,
             body_func,
             (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {
                 "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5),  # Initial arm orientations
+                "prev_arm_orientations": jnp.zeros(5),  
                 "distance": 0.0,
                 "progress": 0.0,
                 "positioning_activity": 0.0,
             }),
         )
         total_reward = jnp.minimum(total_reward2, total_reward2)
+        min_distance = jnp.maximum(info1["distance"], info2["distance"])
 
         if record_episode:
             return total_reward, episode
         else:
-            return total_reward
+            return total_reward, min_distance
 
     def step(self, randkey, env_state, action, targets, info):
         return self.env_step(randkey, env_state, action, targets, info)
@@ -242,42 +242,7 @@ class RLEnv(BaseProblem):
         # This is a simplified version - adjust according to your actual observation logic
         return env_state.observations
 
-    def compute_distance(self, state, params, act_func):
-        randkey = state.randkey
-        (obs, _), env_state, targets = self.env_reset(randkey)
-        target = targets[0]
-
-        def cond_fn(carry):
-            obs, env_state, step_count, done, info = carry
-            return (~done) & (step_count < self.max_step)
-
-        def body_fn(carry):
-            obs, env_state, step_count, done, info = carry
-            action = act_func(state, params, obs)
-            obs, env_state, reward, done, info = self.env_step(
-                randkey, env_state, action, target, info
-            )
-            return obs, env_state, step_count + 1, done, info
-
-        # Initial carry
-        info = {
-            "no_movement_count": jnp.zeros((), dtype=jnp.int32),
-            "prev_arm_orientations": jnp.zeros(5),
-            "distance": jnp.array(0.0),
-            "progress": jnp.array(0.0),
-            "positioning_activity": jnp.array(0.0),
-        }
-        done = jnp.array(False)
-        step_count = jnp.array(0)
-
-        obs, env_state, step_count, done, info = jax.lax.while_loop(
-            cond_fn,
-            body_fn,
-            (obs, env_state, step_count, done, info),
-        )
-
-        return info["distance"]
-
+  
 
 def norm_obs(state, obs):
     return (obs - state.problem_obs_mean) / (state.problem_obs_std + 1e-6)

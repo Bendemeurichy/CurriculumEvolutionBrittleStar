@@ -5,6 +5,7 @@ import numpy as np
 import os
 import jax
 from tensorneat.common import State
+import jax.numpy as jnp
 
 
 class NBestPipeline(Pipeline):
@@ -23,7 +24,7 @@ class NBestPipeline(Pipeline):
         self.early_stop_distance = early_stop_distance
         self.early_stop_patience = early_stop_patience
 
-    def analysis(self, state: State, pop, fitnesses):
+    def analysis(self, state: State, pop, fitnesses, distances):
         """Modified analysis method to store top N genomes."""
         generation = int(state.generation)
 
@@ -41,6 +42,11 @@ class NBestPipeline(Pipeline):
 
         new_timestamp = time.time()
         cost_time = new_timestamp - self.generation_timestamp
+
+        avg_distance = np.mean(distances)
+        max_distance = np.max(distances)
+        min_distance = np.min(distances)
+        
 
         # Optimization: Only consider genomes that might make it into the top N
         worst_top_fitness = float("-inf")
@@ -113,6 +119,7 @@ class NBestPipeline(Pipeline):
         print(
             f"Generation: {generation}, Cost time: {cost_time * 1000:.2f}ms\n",
             f"\tfitness: valid cnt: {len(valid_fitnesses)}, max: {max_f:.4f}, min: {min_f:.4f}, mean: {mean_f:.4f}, std: {std_f:.4f}\n",
+            f"\tdistance: avg: {avg_distance:.4f}, max: {max_distance:.4f}, min: {min_distance:.4f}\n",
         )
 
         self.algorithm.show_details(state, fitnesses)
@@ -168,10 +175,10 @@ class NBestPipeline(Pipeline):
             fitnesses = jax.device_get(fitnesses)
             distances = jax.device_get(distances)
 
-            self.analysis(state, previous_pop, fitnesses)
+            best_distance = np.min(distances)
+            self.analysis(state, previous_pop, fitnesses, distances)
 
             # Early stopping: use distances just like fitnesses
-            best_distance = np.min(distances)
             if best_distance <= self.early_stop_distance:
                 consec += 1
                 print(
@@ -214,25 +221,6 @@ class NBestPipeline(Pipeline):
             State: The updated state after one step.
         """
         # Call the original step function
-        state, previous_pop, fitnesses = super().step(state)
+        state, previous_pop, fitnesses, distances = super().step(state)
 
-        if (
-            hasattr(self, "compiled_pop_transform_func")
-            and self.compiled_pop_transform_func is not None
-        ):
-            pop_transformed = self.compiled_pop_transform_func(state, previous_pop)
-        else:
-            pop_transformed = jax.vmap(self.algorithm.transform, in_axes=(None, 0))(
-                state, previous_pop
-            )
-
-        self.compiled_compute_distance = jax.jit(
-            jax.vmap(
-                lambda params: self.problem.compute_distance(
-                    state, params, self.algorithm.forward
-                )
-            )
-        )
-        distances = self.compiled_compute_distance(pop_transformed)
-
-        return state, previous_pop, fitnesses, distances
+        return state, previous_pop, fitnesses, jnp.array([distances.mean()])
