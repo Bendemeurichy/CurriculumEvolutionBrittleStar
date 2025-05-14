@@ -81,11 +81,13 @@ def train_neat_curriculum():
             )
 
         config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
-        config.NUM_GENERATIONS = int(config.NUM_GENERATIONS/2) # TODO: remove this when we added early stopping
+        config.NUM_GENERATIONS = int(
+            config.NUM_GENERATIONS / 2
+        )  # TODO: remove this when we added early stopping
         print(
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
-        problem = BrittleStarEnv(num_segments_per_arm=[i + 1]*config.NUM_ARMS)
+        problem = BrittleStarEnv(num_segments_per_arm=[i + 1] * config.NUM_ARMS)
         pipeline = init_pipeline(problem)
         state = pipeline.setup()
         print("Initializing TensorNEAT state...")
@@ -97,6 +99,7 @@ def train_neat_curriculum():
             extra_segments=1,
             arm_count=config.NUM_ARMS,
         )
+
 
 def train_neat_no_curriculum():
     config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
@@ -123,7 +126,7 @@ def train_neat_no_curriculum():
         print(
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
-        problem = BrittleStarEnv(num_segments_per_arm=[i + 1]*config.NUM_ARMS)
+        problem = BrittleStarEnv(num_segments_per_arm=[i + 1] * config.NUM_ARMS)
         pipeline = init_pipeline(problem)
         state = pipeline.setup()
         print("Initializing TensorNEAT state...")
