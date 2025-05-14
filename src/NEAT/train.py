@@ -65,6 +65,8 @@ def train_neat_curriculum():
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
+    generations_per_segment = []
+
     for i in range(1, 6):
         print(
             f"Starting NEAT training for brittle star locomotion with {i} segments..."
@@ -74,6 +76,8 @@ def train_neat_curriculum():
         print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
 
         state, best_genomes, generations = pipeline.auto_run(state)
+
+        generations_per_segment.append(generations)
 
         for j, genome in enumerate(best_genomes):
             save_genome(
@@ -98,12 +102,19 @@ def train_neat_curriculum():
             arm_count=config.NUM_ARMS,
         )
 
+    for i, generations in enumerate(generations_per_segment):
+        print(
+            f"Training for {i + 1} segments took {generations} generations to reach the target"
+        )
+
 
 def train_neat_no_curriculum():
     config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
     problem = BrittleStarEnv()
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
+
+    generations_per_segment = []
 
     for i in range(1, 6):
         print(
@@ -114,6 +125,8 @@ def train_neat_no_curriculum():
         print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
 
         state, best_genomes, generations = pipeline.auto_run(state)
+
+        generations_per_segment.append(generations)
 
         for j, genome in enumerate(best_genomes):
             save_genome(
@@ -128,6 +141,11 @@ def train_neat_no_curriculum():
         pipeline = init_pipeline(problem)
         state = pipeline.setup()
         print("Initializing TensorNEAT state...")
+
+    for i, generations in enumerate(generations_per_segment):
+        print(
+            f"Training for {i + 1} segments took {generations} generations to reach the target"
+        )
 
 
 if __name__ == "__main__":
