@@ -81,9 +81,7 @@ def train_neat_curriculum():
             )
 
         config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
-        config.NUM_GENERATIONS = int(
-            config.NUM_GENERATIONS / 2
-        )  # TODO: remove this when we added early stopping
+
         print(
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
