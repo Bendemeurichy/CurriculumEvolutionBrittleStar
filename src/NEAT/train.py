@@ -68,7 +68,7 @@ def train_neat_curriculum(start_genome=None):
 
     config.NUM_SEGMENTS_PER_ARM = [start_num_segments] * config.NUM_ARMS
     problem = BrittleStarEnv()
-    
+
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
@@ -77,7 +77,7 @@ def train_neat_curriculum(start_genome=None):
             state,
             pipeline,
             genomes=[genome],
-            current_segment_count=start_num_segments-1,
+            current_segment_count=start_num_segments - 1,
             extra_segments=1,
             arm_count=config.NUM_ARMS,
         )
@@ -164,7 +164,11 @@ def train_neat_no_curriculum():
             f"Training for {i + 1} segments took {generations} generations to reach the target"
         )
 
+    print(
+        f"Evolution completed successfully, total generations: {sum(generations_per_segment)}"
+    )
+
 
 if __name__ == "__main__":
     # train_neat_controller()
-    train_neat_curriculum()#start_genome="./models/curr_test_4/best_0_genome_2_seg.pkl")
+    train_neat_curriculum()  # start_genome="./models/curr_test_4/best_0_genome_2_seg.pkl")
