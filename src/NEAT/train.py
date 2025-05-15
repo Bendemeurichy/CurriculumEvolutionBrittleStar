@@ -59,16 +59,32 @@ def train_neat_controller(extend_genome=True):
     return state, best_genomes
 
 
-def train_neat_curriculum():
-    config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
+def train_neat_curriculum(start_genome=None):
+
+    start_num_segments = 1
+    if start_genome is not None:
+        genome = load_model(start_genome)
+        start_num_segments = 3
+
+    config.NUM_SEGMENTS_PER_ARM = [start_num_segments] * config.NUM_ARMS
     problem = BrittleStarEnv()
     
     pipeline = init_pipeline(problem)
     state = pipeline.setup()
 
+    if start_genome is not None:
+        state = extend_genome(
+            state,
+            pipeline,
+            genomes=[genome],
+            current_segment_count=start_num_segments-1,
+            extra_segments=1,
+            arm_count=config.NUM_ARMS,
+        )
+
     generations_per_segment = []
 
-    for i in range(1, 6):
+    for i in range(start_num_segments, 6):
         print(
             f"Starting NEAT training for brittle star locomotion with {i} segments..."
         )
@@ -151,4 +167,4 @@ def train_neat_no_curriculum():
 
 if __name__ == "__main__":
     # train_neat_controller()
-    train_neat_curriculum()
+    train_neat_curriculum()#start_genome="./models/curr_test_4/best_0_genome_2_seg.pkl")

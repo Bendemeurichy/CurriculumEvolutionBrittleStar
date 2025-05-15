@@ -59,11 +59,6 @@ def get_direction_to_target(env_state: MJXEnvState) -> jnp.ndarray:
     angle_diff = jnp.mod(target_angle - disk_angle + jnp.pi, 2 * jnp.pi) - jnp.pi
     
     return  jnp.array([angle_diff])
-    
-    # NO key "direction_to_target" in observations
-    x, y = env_state.observations["direction_to_target"]
-    return jnp.arctan2(y, x)
-
 
 def get_joint_positions(env_state: MJXEnvState, arm: int) -> jnp.ndarray:
     joint_positions = env_state.observations["joint_position"]

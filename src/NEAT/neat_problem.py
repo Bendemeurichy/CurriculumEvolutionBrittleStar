@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 # from tensorneat.problem.rl.rl_jit import RLEnv
 from NEAT.neat_controller import scale_actions, get_observation, get_environment_dims
-
+from observations import get_disk_position
 import NEAT.config as config
 from NEAT.RLEnv import RLEnv
 
@@ -56,111 +56,53 @@ class BrittleStarEnv(RLEnv):
 
         obs = get_observation(next_env_state, target)
 
-        # Calculate distance to the specified target
+        # Calculate key metrics
         disk_position = next_env_state.observations["disk_position"][:2]
         distance = jnp.linalg.norm(disk_position - target[:2])
-
-        # Calculate previous distance for progress calculation
-        prev_disk_position = env_state.observations["disk_position"][:2]
-        prev_distance = jnp.linalg.norm(prev_disk_position - target[:2])
-
-        # Calculate progress toward target (positive when getting closer)
-        progress = prev_distance - distance
-
-        # Calculate total movement (to prevent staying still)
-        disk_velocity = jnp.linalg.norm(
+        
+        #prev_disk_position = env_state.observations["disk_position"][:2]
+        #prev_distance = jnp.linalg.norm(prev_disk_position - target[:2])
+        
+        # Calculate progress toward target
+        # progress = prev_distance - distance
+        
+        # Calculate movement
+        current_velocity = jnp.linalg.norm(
             next_env_state.observations["disk_linear_velocity"][:2]
         )
+        
+        # # Update velocity history
+        # velocity_history = info.get("velocity_history", jnp.zeros(30))
+        # # Shift history and add current velocity
+        # velocity_history = jnp.roll(velocity_history, -1)
+        # velocity_history = velocity_history.at[-1].set(current_velocity)
+        
+        # # Calculate average velocity over history
+        # avg_velocity = jnp.mean(velocity_history)
+        
+        # # Track no movement for stuck detection
+        # no_movement_count = info["no_movement_count"]
+        # no_movement_count = jax.lax.cond(
+        #     current_velocity < 0.05,
+        #     lambda _: no_movement_count + 1,
+        #     lambda _: no_movement_count - 5,
+        #     operand=None,
+        # )
 
-        # Calculate energy usage (sum of absolute actuator forces)
-        actuator_forces = next_env_state.observations["actuator_force"]
-        num_actuators = actuator_forces.size
-        energy_usage = jnp.sum(jnp.abs(actuator_forces)) / num_actuators
-
-        # Track no movement count but add additional metrics
-        no_movement_count = info["no_movement_count"]
-        no_movement_count = jax.lax.cond(
-            disk_velocity < 0.05,
-            lambda _: no_movement_count + 1,
-            lambda _: 0,
-            operand=None,
-        )
-
-        # Track productive vs unproductive stillness
-        # Add orientation change to detect if the brittlestar is repositioning while still
-        arm_orientations = next_env_state.observations.get(
-            "arm_orientations", jnp.zeros(5)
-        )
-        prev_arm_orientations = info.get("prev_arm_orientations", arm_orientations)
-        orientation_change = jnp.sum(jnp.abs(arm_orientations - prev_arm_orientations))
-
-        # Components of the reward
-        # 1. Base distance component (negative to minimize)
-        distance_reward = -distance * 0.5
-
-        # 2. Progress reward (strongly encourage moving toward the target)
-        progress_reward = progress * 5.0
-
-        # 3. Velocity reward (encourage movement up to a reasonable speed)
-        velocity_reward = jnp.minimum(disk_velocity, 0.8) * 0.3
-
-        # 4. Energy efficiency (small penalty for excessive force)
-        energy_penalty = jnp.clip(energy_usage * 0.05, 0.0, 0.5)
-
-        # 5. Direction bonus (reward moving in direction of target)
-        velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (
-            disk_velocity + 1e-8
-        )
-        target_direction = (target[:2] - disk_position) / (distance + 1e-8)
-        alignment = jnp.dot(velocity_direction, target_direction)
-        direction_bonus = jax.lax.cond(
-            disk_velocity > 0.05,
-            lambda _: jnp.maximum(alignment, 0) * 0.5,
-            lambda _: jnp.array(0.0),
-            operand=None,
-        )
-
-        # 6. Modified stuck penalty - only penalize if both velocity is low AND there's minimal repositioning
-        # Allow up to 20 timesteps of standing still before penalties begin
-        # Reduce penalty when there's significant arm movement (positioning)
-        positioning_activity = jnp.minimum(
-            orientation_change * 2.0, 1.0
-        )  # Cap the positioning bonus
-        effective_idle_count = jnp.maximum(0, no_movement_count - 20)
-        stuck_penalty = jnp.maximum(0, effective_idle_count * 0.03) * (
-            1.0 - positioning_activity
-        )
-
-        # 7. Proximity bonus (extra reward for getting very close)
-        proximity_bonus = jnp.where(distance < 1.0, (1.0 - distance) * 2.0, 0.0)
-
-        # Combine all reward components
-        reward = (
-            distance_reward
-            + progress_reward
-            + velocity_reward
-            - energy_penalty
-            + direction_bonus
-            - stuck_penalty
-            + proximity_bonus
-        )
-
-        # Success bonus
-        success_bonus = jnp.where(distance < 0.2, 10.0, 0.0)
-        reward += success_bonus
-
+        # no_movement_count = jnp.maximum(no_movement_count, 0)
+                
+        # Use average velocity in reward instead of instantaneous velocity
+        reward = -distance + current_velocity 
+        
         # Terminal condition
         done = jnp.array(distance < 0.1)
-
-        # Update info with relevant metrics
+        reward = jnp.where(distance < 0.1, reward + 500.0, reward)
+        
+        # Update info with metrics including velocity history
         info = {
-            "no_movement_count": no_movement_count,
-            "prev_arm_orientations": arm_orientations,
             "distance": distance,
-            "progress": progress,
-            "positioning_activity": positioning_activity,
         }
-
+        
         return obs, next_env_state, reward, done, info
 
     def env_reset(self, randkey):

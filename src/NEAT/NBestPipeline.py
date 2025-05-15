@@ -191,9 +191,9 @@ class NBestPipeline(Pipeline):
             else:
                 consec = 0
 
-            if max(fitnesses) >= self.fitness_target:
-                print("Fitness limit reached!")
-                break
+            # if max(fitnesses) >= self.fitness_target:
+            #     print("Fitness limit reached!")
+            #     break
 
         if int(state.generation) >= self.generation_limit:
             print("Generation limit reached!")

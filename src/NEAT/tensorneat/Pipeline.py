@@ -163,9 +163,9 @@ class Pipeline(StatefulBaseClass):
 
             self.analysis(state, previous_pop, fitnesses)
 
-            if max(fitnesses) >= self.fitness_target:
-                print("Fitness limit reached!")
-                break
+            # if max(fitnesses) >= self.fitness_target:
+            #     print("Fitness limit reached!")
+            #     break
 
         if int(state.generation) >= self.generation_limit:
             print("Generation limit reached!")
