@@ -181,8 +181,8 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
 
 if __name__ == "__main__":
-    model_filename = "best_0_genome_2_seg.pkl"
-    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_4", model_filename)
+    model_filename = "best_8_genome_4_seg.pkl"
+    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_6", model_filename)
     segments = config.NUM_SEGMENTS_PER_ARM
 
     parts = model_filename.split("_")
