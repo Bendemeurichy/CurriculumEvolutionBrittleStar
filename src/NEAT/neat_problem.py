@@ -93,7 +93,6 @@ class BrittleStarEnv(RLEnv):
                 
         # Use average velocity in reward instead of instantaneous velocity
         reward = -distance + 5 * current_velocity 
-        jax.debug.print("{}, {}", distance, current_velocity)
         
         # Terminal condition
         done = jnp.array(distance < 0.1)
