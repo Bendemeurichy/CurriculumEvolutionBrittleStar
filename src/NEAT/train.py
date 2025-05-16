@@ -124,6 +124,10 @@ def train_neat_curriculum(start_genome=None):
             f"Training for {i + 1} segments took {generations} generations to reach the target"
         )
 
+    print(
+        f"Evolution completed successfully, total generations: {sum(generations_per_segment)}"
+    )
+
 
 def train_neat_no_curriculum():
     config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
@@ -147,7 +151,9 @@ def train_neat_no_curriculum():
 
         for j, genome in enumerate(best_genomes):
             save_genome(
-                genome, output_dir="./models", filename=f"best_{j}_genome_{i}_seg.pkl"
+                genome,
+                output_dir="./models",
+                filename=f"best_{j}_genome_{i}_seg_direct.pkl",
             )
 
         config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
@@ -170,5 +176,22 @@ def train_neat_no_curriculum():
 
 
 if __name__ == "__main__":
-    # train_neat_controller()
-    train_neat_curriculum()  # start_genome="./models/curr_test_4/best_0_genome_2_seg.pkl")
+    import argparse
+
+    # Arguments for training mode
+    parser = argparse.ArgumentParser(
+        description="Train NEAT controller for brittle star locomotion."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["curriculum", "no_curriculum"],
+        default="no_curriculum",
+        help="Choose training mode: curriculum or no_curriculum",
+    )
+
+    args = parser.parse_args()
+
+    if args.mode == "curriculum":
+        train_neat_curriculum()
+    else:
+        train_neat_no_curriculum()
