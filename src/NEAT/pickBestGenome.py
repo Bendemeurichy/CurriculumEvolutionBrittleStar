@@ -8,9 +8,9 @@ import render
 
 import NEAT.config as config
 from environment import initialize_simulation
-from neat_controller import scale_actions, get_observation
+from neat_controller import scale_actions_to_joint_limits, extract_observation
 from NEAT.visualize import load_model 
-from NEAT.neat_controller import init_pipeline
+from NEAT.neat_controller import initialize_neat_pipeline
 from NEAT.neat_problem import BrittleStarEnv
 
 
@@ -22,7 +22,7 @@ def run_model(model_path,segments = config.NUM_SEGMENTS_PER_ARM):
     # exit(1)
     problem = BrittleStarEnv(num_segments_per_arm=segments)
 
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
     state = pipeline.setup()
 
     
@@ -60,7 +60,7 @@ def get_step_count(state, genome, algorithm,segments):
     # target = [t,t]
     # print("Target position:", target)
     target = None
-    obs = get_observation(env_state)
+    obs = extract_observation(env_state)
 
     initial_distance = env_state.observations["xy_distance_to_target"][0]
 
@@ -81,7 +81,7 @@ def get_step_count(state, genome, algorithm,segments):
 
         action = algorithm.forward(state, transformed_genome, obs)
 
-        scaled_action = scale_actions(action, num_segments_per_arm=segments)
+        scaled_action = scale_actions_to_joint_limits(action, num_segments_per_arm=segments)
 
         #print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
         # target_id = env_state.mj_model.body("target").id
@@ -90,7 +90,7 @@ def get_step_count(state, genome, algorithm,segments):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = get_observation(env_state,targets=target)
+        obs = extract_observation(env_state,targets=target)
         
 
         current_distance = env_state.observations["xy_distance_to_target"][0]

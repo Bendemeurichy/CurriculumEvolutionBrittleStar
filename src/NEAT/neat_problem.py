@@ -2,9 +2,7 @@ from environment import initialize_simulation
 import jax
 import jax.numpy as jnp
 
-# from tensorneat.problem.rl.rl_jit import RLEnv
-from NEAT.neat_controller import scale_actions, get_observation, get_environment_dims
-from observations import get_disk_position
+from NEAT.neat_controller import scale_actions_to_joint_limits, extract_observation, calculate_environment_dimensions
 import NEAT.config as config
 from NEAT.RLEnv import RLEnv
 
@@ -43,62 +41,35 @@ class BrittleStarEnv(RLEnv):
         self.environment_configuration = environment_configuration
         self.num_segments_per_arm = num_segments_per_arm
 
-        self._input_dims, self._output_dims = get_environment_dims(env, env_state)
+        self._input_dims, self._output_dims = calculate_environment_dimensions(env, env_state)
 
-    def env_step(self, randkey, env_state, action, target, info):
+    def env_step(self, _, env_state, action, target, info):
         """Step the environment with the given action"""
 
-        scaled_action = scale_actions(
+        scaled_action = scale_actions_to_joint_limits(
             action, num_segments_per_arm=self.num_segments_per_arm
         )
 
         next_env_state = self.env.step(state=env_state, action=scaled_action)
 
-        obs = get_observation(next_env_state, target)
+        obs = extract_observation(next_env_state, target)
 
-        # Calculate key metrics
         disk_position = next_env_state.observations["disk_position"][:2]
         distance = jnp.linalg.norm(disk_position - target[:2])
         
-        #prev_disk_position = env_state.observations["disk_position"][:2]
-        #prev_distance = jnp.linalg.norm(prev_disk_position - target[:2])
-        
-        # Calculate progress toward target
-        # progress = prev_distance - distance
-        
-        # Calculate movement
         current_velocity = jnp.linalg.norm(
             next_env_state.observations["disk_linear_velocity"][:2]
         )
-        
-        # # Update velocity history
-        # velocity_history = info.get("velocity_history", jnp.zeros(30))
-        # # Shift history and add current velocity
-        # velocity_history = jnp.roll(velocity_history, -1)
-        # velocity_history = velocity_history.at[-1].set(current_velocity)
-        
-        # # Calculate average velocity over history
-        # avg_velocity = jnp.mean(velocity_history)
-        
-        # # Track no movement for stuck detection
-        # no_movement_count = info["no_movement_count"]
-        # no_movement_count = jax.lax.cond(
-        #     current_velocity < 0.05,
-        #     lambda _: no_movement_count + 1,
-        #     lambda _: no_movement_count - 5,
-        #     operand=None,
-        # )
 
-        # no_movement_count = jnp.maximum(no_movement_count, 0)
-                
-        # Use average velocity in reward instead of instantaneous velocity
-        reward = -distance + 5 * current_velocity 
+        # current_velocity = jnp.where(distance < 0.5, current_velocity, 5 * current_velocity)
         
-        # Terminal condition
-        done = jnp.array(distance < 0.1)
-        reward = jnp.where(distance < 0.1, reward + 500.0, reward)
         
-        # Update info with metrics including velocity history
+        reward = -distance + 2 * current_velocity 
+
+        done = jnp.array(distance < config.TARGET_REACHED_THRESHOLD)
+
+        reward = jnp.where(distance < config.TARGET_REACHED_THRESHOLD, reward + 1000.0, reward)
+        
         info = {
             "distance": distance,
         }
@@ -127,8 +98,8 @@ class BrittleStarEnv(RLEnv):
             ]
         )
 
-        obs1 = get_observation(env_state, targets[0])
-        obs2 = get_observation(env_state, targets[1])
+        obs1 = extract_observation(env_state, targets[0])
+        obs2 = extract_observation(env_state, targets[1])
         return (obs1, obs2), env_state, targets
 
     def generate_target_position(self, rng) -> jnp.ndarray:

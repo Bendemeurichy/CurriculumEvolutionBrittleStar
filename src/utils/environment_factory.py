@@ -62,6 +62,7 @@ def create_morphology(morphology_spec: BrittleStarMorphologySpecification) -> MJ
     return MJCFBrittleStarMorphology(specification=morphology_spec)
 
 
+
 def create_environment(
     morphology_spec: BrittleStarMorphologySpecification,
     arena_config: AquariumArenaConfiguration,

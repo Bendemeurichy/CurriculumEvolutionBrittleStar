@@ -21,7 +21,7 @@ def render_mjcf_model(mjcf: MJCFRootComponent, mujoco) -> None:
     data = mujoco.MjData(model)
     renderer = mujoco.Renderer(model)
 
-    for _ in range(100):  # Simulate for 100 steps
+    for _ in range(100):  
         mujoco.mj_step(model, data)
         renderer.update_scene(data)
 

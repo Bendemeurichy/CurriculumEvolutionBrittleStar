@@ -1,15 +1,12 @@
 import pickle
 import os
-import jax.numpy as jnp
 import sys
-import numpy as np
-import copy
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from NEAT.genome_extension import extend_genome
 from NEAT.neat_problem import BrittleStarEnv
-from NEAT.neat_controller import init_pipeline
+from NEAT.neat_controller import initialize_neat_pipeline
 from NEAT.visualize import load_model
 import NEAT.config as config
 
@@ -33,7 +30,7 @@ def train_neat_controller(extend_genome=True):
     num_inputs, num_outputs = problem._input_dims, problem._output_dims
     print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
 
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
 
     print("Initializing TensorNEAT state...")
     state = pipeline.setup()
@@ -69,7 +66,7 @@ def train_neat_curriculum(start_genome=None):
     config.NUM_SEGMENTS_PER_ARM = [start_num_segments] * config.NUM_ARMS
     problem = BrittleStarEnv()
 
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
     state = pipeline.setup()
 
     if start_genome is not None:
@@ -107,7 +104,7 @@ def train_neat_curriculum(start_genome=None):
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
         problem = BrittleStarEnv(num_segments_per_arm=[i + 1] * config.NUM_ARMS)
-        pipeline = init_pipeline(problem)
+        pipeline = initialize_neat_pipeline(problem)
         state = pipeline.setup()
         print("Initializing TensorNEAT state...")
         state = extend_genome(
@@ -132,7 +129,7 @@ def train_neat_curriculum(start_genome=None):
 def train_neat_no_curriculum():
     config.NUM_SEGMENTS_PER_ARM = [1] * config.NUM_ARMS
     problem = BrittleStarEnv()
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
     state = pipeline.setup()
 
     generations_per_segment = []
@@ -161,7 +158,7 @@ def train_neat_no_curriculum():
             f"Updating the number of segments per arm to {config.NUM_SEGMENTS_PER_ARM}"
         )
         problem = BrittleStarEnv(num_segments_per_arm=[i + 1] * config.NUM_ARMS)
-        pipeline = init_pipeline(problem)
+        pipeline = initialize_neat_pipeline(problem)
         state = pipeline.setup()
         print("Initializing TensorNEAT state...")
 
