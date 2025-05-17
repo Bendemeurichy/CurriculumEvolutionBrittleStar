@@ -18,7 +18,7 @@ TARGET_POSITION = (
 # Visualization and saving
 NUM_PHYSICS_STEPS_PER_CONTROL_STEP = 10  # How many physics steps per action
 
-TARGET_REACHED_THRESHOLD = 0.1  # Minimal distance to target to consider the target successfully reached
+TARGET_REACHED_THRESHOLD = 0.2  # Minimal distance to target to consider the target successfully reached
 EARLY_STOPPING = 5 # Number of consecutive generations when a genome reaches the target
 
 # NEAT algorithm parameters

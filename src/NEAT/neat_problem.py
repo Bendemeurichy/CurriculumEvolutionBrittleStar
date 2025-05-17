@@ -64,7 +64,7 @@ class BrittleStarEnv(RLEnv):
         # current_velocity = jnp.where(distance < 0.5, current_velocity, 5 * current_velocity)
         
         
-        reward = -distance + 2 * current_velocity 
+        reward = -distance + current_velocity 
 
         done = jnp.array(distance < config.TARGET_REACHED_THRESHOLD)
 
