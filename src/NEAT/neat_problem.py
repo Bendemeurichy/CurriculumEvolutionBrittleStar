@@ -105,7 +105,7 @@ class BrittleStarEnv(RLEnv):
         velocity_reward = jnp.minimum(disk_velocity, 0.8) * 0.3
 
         # 4. Energy efficiency (small penalty for excessive force)
-        energy_penalty = jnp.clip(energy_usage * 0.05, 0.0, 0.5)
+        energy_penalty = jnp.clip(energy_usage * 0.1, 0.0, 1.0)
 
         # 5. Direction bonus (reward moving in direction of target)
         velocity_direction = next_env_state.observations["disk_linear_velocity"][:2] / (
@@ -136,13 +136,7 @@ class BrittleStarEnv(RLEnv):
 
         # Combine all reward components
         reward = (
-            distance_reward
-            + progress_reward
-            + velocity_reward
-            - energy_penalty
-            + direction_bonus
-            - stuck_penalty
-            + proximity_bonus
+            -((distance+alignment)/(0.1*disk_velocity))
         )
 
         # Success bonus

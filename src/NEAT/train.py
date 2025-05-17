@@ -118,7 +118,7 @@ def train_neat_no_curriculum():
 
     for i in range(1, 6):
         print(
-            f"Starting NEAT training for brittle star locomotion with {i} segments..."
+            f"Starting NEAT training(without curriculum) for brittle star locomotion with {i} segments..."
         )
 
         num_inputs, num_outputs = problem._input_dims, problem._output_dims
