@@ -90,7 +90,7 @@ def get_step_count(state, genome, algorithm,segments):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = extract_observation(env_state,targets=target)
+        obs = extract_observation(env_state)
         
 
         current_distance = env_state.observations["xy_distance_to_target"][0]
@@ -99,7 +99,7 @@ def get_step_count(state, genome, algorithm,segments):
         reward = current_distance
         total_reward += reward
 
-        if current_distance < 0.1:
+        if current_distance < config.TARGET_REACHED_THRESHOLD:
             print("Target reached! after", step, "steps")
             break
 
@@ -116,7 +116,8 @@ def find_best_genomes_by_segments(folder: str):
     best_genomes = {}  # Map of num_segments -> (model_path, step_count)
 
     for filename in os.listdir(folder):
-        if filename.endswith(".pkl") and "genome" in filename:
+        if filename.endswith(".pkl") and "genome" in filename and "_direct" not in filename:
+            print(f"Processing file: {filename}")
             # Parse the filename to extract segment count
             # Format: best_0_genome_2_seg
             parts = filename.split("_")
@@ -142,7 +143,7 @@ def find_best_genomes_by_segments(folder: str):
 
 if __name__ == "__main__":
     # Example usage
-    folder_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_2")
+    folder_path = os.path.join(os.path.dirname(__file__), "../models/final")
 
     best_genomes = find_best_genomes_by_segments(folder_path)
     

@@ -179,11 +179,11 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
 
 if __name__ == "__main__":
-    model_filename = "best_9_genome_4_seg.pkl"
-    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_5", model_filename)
+    model_filename = "best_9_genome_3_seg.pkl"
+    model_path = os.path.join(os.path.dirname(__file__), "../models/final", model_filename)
     segments = config.NUM_SEGMENTS_PER_ARM
 
-    parts = model_filename.split("_")
+    parts = model_filename.replace("_direct","").split("_")
     if len(parts) == 5:
         num_segments = int(parts[-2])
         segments = [num_segments] * config.NUM_ARMS
