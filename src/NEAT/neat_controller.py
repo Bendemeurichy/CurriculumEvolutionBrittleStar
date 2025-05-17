@@ -1,10 +1,10 @@
+"""Controller for brittle star movement using NEAT neural networks."""
 import jax
 import jax.numpy as jnp
 from NEAT.NBestPipeline import NBestPipeline
 from NEAT.observations import (
-    get_joint_positions,
-    get_direction_to_target,
-    get_disk_direction,
+    extract_joint_positions,
+    calculate_direction_to_target,
 )
 import NEAT.config as config
 from tensorneat.pipeline import Pipeline
@@ -14,12 +14,19 @@ from tensorneat.common import ACT, AGG
 from NEAT.target_utils import get_direction_to_closest_target
 
 
-def scale_actions(actions, num_segments_per_arm=config.NUM_SEGMENTS_PER_ARM):
-    """Scale actions to match joint limits"""
+def scale_actions_to_joint_limits(actions, num_segments_per_arm=config.NUM_SEGMENTS_PER_ARM):
+    """Scale network output actions to match joint limits.
+    
+    Args:
+        actions: Raw actions from the neural network
+        num_segments_per_arm: Number of segments per arm
+        
+    Returns:
+        Actions scaled to joint limits
+    """
     lower_bounds = jnp.array([-1.047, -0.785] * sum(num_segments_per_arm))
     upper_bounds = jnp.array([1.047, 0.785] * sum(num_segments_per_arm))
 
-    # Normalize between -1 and 1
     normalized_action = jnp.tanh(actions)
 
     action_ranges = (upper_bounds - lower_bounds) / 2
@@ -29,13 +36,20 @@ def scale_actions(actions, num_segments_per_arm=config.NUM_SEGMENTS_PER_ARM):
     return scaled_action
 
 
-def get_observation(env_state, target=None):
-    """Extract observation from environment state"""
+def extract_observation(env_state, target=None):
+    """Extract observation features from environment state.
+    
+    Args:
+        env_state: Current environment state
+        target: Optional target position override
+        
+    Returns:
+        Observation vector for the neural network
+    """
     joint_positions = []
     for arm in range(config.NUM_ARMS):
-        joint_positions.append(get_joint_positions(env_state, arm))
+        joint_positions.append(extract_joint_positions(env_state, arm))
 
-    # If targets is provided, use the closest target, otherwise use the environment target
     if target is not None:
         disk_position = env_state.observations["disk_position"][:2]
         disk_rotation = env_state.observations["disk_rotation"][2]
@@ -43,42 +57,53 @@ def get_observation(env_state, target=None):
             disk_position, disk_rotation, target
         )
     else:
-        # Use the target from the environment state
-        direction_to_target = get_direction_to_target(env_state)
+        direction_to_target = calculate_direction_to_target(env_state)
 
     joint_positions_combined = jnp.concatenate(joint_positions)
-
-    # Combine all observations
-    obs = jnp.concatenate(
-        [
-            joint_positions_combined,
-            direction_to_target,
-        ]
-    )
-
-    return obs
+    return jnp.concatenate([joint_positions_combined, direction_to_target])
 
 
-def get_environment_dims(env, state):
-    """Get the input and output dimensions from the environment"""
-    # Calculate number of inputs and outputs
-    num_inputs = len(get_observation(state))
-    # num_inputs = sum(
-    #     [len(get_joint_positions(state, arm)) for arm in range(config.NUM_ARMS)]
-    # ) + len(get_direction_to_target(state)) + 1 + 2 + 2  # angle + distance + vector + velocity
+def calculate_environment_dimensions(env, state):
+    """Calculate the input and output dimensions for the neural network.
+    
+    Args:
+        env: Simulation environment
+        state: Initial environment state
+        
+    Returns:
+        Tuple of (num_inputs, num_outputs)
+    """
+    num_inputs = len(extract_observation(state))
     num_outputs = len(env.action_space.sample(rng=jax.random.PRNGKey(seed=0)))
     return num_inputs, num_outputs
 
 
-def get_max_networks_dims(num_inputs, num_outputs):
+def calculate_network_size_limits(num_inputs, num_outputs):
+    """Calculate maximum nodes and connections for the neural network.
+    
+    Args:
+        num_inputs: Number of input nodes
+        num_outputs: Number of output nodes
+        
+    Returns:
+        Tuple of (max_nodes, max_connections)
+    """
     max_nodes = max(50, (num_inputs * num_outputs) * 2)
     max_connections = max_nodes * 2
     return max_nodes, max_connections
 
 
-def init_pipeline(problem):
+def initialize_neat_pipeline(problem):
+    """Initialize a NEAT evolution pipeline.
+    
+    Args:
+        problem: NEAT problem definition
+        
+    Returns:
+        Configured NEAT pipeline
+    """
     num_inputs, num_outputs = problem._input_dims, problem._output_dims
-    max_nodes, max_connections = get_max_networks_dims(num_inputs, num_outputs)
+    max_nodes, max_connections = calculate_network_size_limits(num_inputs, num_outputs)
 
     return NBestPipeline(
         algorithm=NEAT(
@@ -93,7 +118,7 @@ def init_pipeline(problem):
                 init_hidden_layers=(),
                 node_gene=BiasNode(
                     activation_options=[ACT.tanh, ACT.relu, ACT.sigmoid],
-                    aggregation_options=[AGG.sum],  # , AGG.product, AGG.mean],
+                    aggregation_options=[AGG.sum],
                 ),
                 output_transform=ACT.identity,
             ),
@@ -101,9 +126,10 @@ def init_pipeline(problem):
         problem=problem,
         generation_limit=config.NUM_GENERATIONS,
         fitness_target=10000,
-        early_stop_distance=0.1,
-        early_stop_patience=5,
+        early_stop_distance=config.TARGET_REACHED_THRESHOLD,
+        early_stop_patience=config.EARLY_STOPPING,
         seed=config.SEED,
         is_save=False,
         save_dir="output",
     )
+

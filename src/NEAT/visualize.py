@@ -4,23 +4,21 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from neat_controller import scale_actions, get_observation
+from neat_controller import scale_actions_to_joint_limits, extract_observation
 import NEAT.config as config
 from environment import initialize_simulation
 import render
 import pickle
-from NEAT.neat_controller import init_pipeline
+from NEAT.neat_controller import initialize_neat_pipeline
 from NEAT.neat_problem import BrittleStarEnv
-import numpy as np
-from NEAT.genome_extension import extend_genome, add_segment_to_genome
 
-def create_animation(frames, output_path):
+def create_mp4_video(frames, output_path):
     """Create and save an animation from frames"""
     directory = os.path.dirname(output_path)
     if directory: 
         os.makedirs(directory, exist_ok=True)
 
-    render.create_animation(frames, output_path=output_path)
+    render.create_mp4_video(frames, output_path=output_path)
     print(f"Saved animation to {output_path}")
     render.play_video(output_path)
 
@@ -40,7 +38,7 @@ def save_network_visualization(genome,segments, save_path=None):
 
 
     problem = BrittleStarEnv(num_segments_per_arm=segments)
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
     state = pipeline.setup()
 
 
@@ -61,7 +59,7 @@ def visualize_model(model_path, save_path=None,segments=config.NUM_SEGMENTS_PER_
     # exit(1)
     problem = BrittleStarEnv(num_segments_per_arm=segments)
 
-    pipeline = init_pipeline(problem)
+    pipeline = initialize_neat_pipeline(problem)
     state = pipeline.setup()
 
     
@@ -101,7 +99,7 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
     # target = [t,t]
     # print("Target position:", target)
     target = None
-    obs = get_observation(env_state)
+    obs = extract_observation(env_state)
 
     initial_distance = env_state.observations["xy_distance_to_target"][0]
 
@@ -125,7 +123,7 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
         action = algorithm.forward(state, transformed_genome, obs)
 
-        scaled_action = scale_actions(action, num_segments_per_arm=segments)
+        scaled_action = scale_actions_to_joint_limits(action, num_segments_per_arm=segments)
 
         #print("=>",env_state.mj_data.xpos[env_state.mj_model.body("target").id])
         # target_id = env_state.mj_model.body("target").id
@@ -134,7 +132,7 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
         env_state = env.step(state=env_state, action=scaled_action)
         # print(env_state.observations)
-        obs = get_observation(env_state,target)
+        obs = extract_observation(env_state,target)
         
 
         current_distance = env_state.observations["xy_distance_to_target"][0]
@@ -167,7 +165,7 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-    create_animation(frames, save_path)
+    create_mp4_video(frames, save_path)
 
     return {
         "frames": frames,
@@ -181,8 +179,8 @@ def visualize_brittlestar(state, genome, algorithm,segments, save_path=None):
 
 
 if __name__ == "__main__":
-    model_filename = "best_8_genome_4_seg.pkl"
-    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_6", model_filename)
+    model_filename = "best_9_genome_4_seg.pkl"
+    model_path = os.path.join(os.path.dirname(__file__), "../models/curr_test_5", model_filename)
     segments = config.NUM_SEGMENTS_PER_ARM
 
     parts = model_filename.split("_")

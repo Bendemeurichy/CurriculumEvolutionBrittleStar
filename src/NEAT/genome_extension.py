@@ -6,7 +6,7 @@ from tensorneat.genome.utils import add_conn, add_node
 from tensorneat.pipeline import Pipeline
 import jax.random
 import time
-from NEAT.neat_controller import get_max_networks_dims
+from NEAT.neat_controller import calculate_network_size_limits
 
 
 ### CODE FOR EXTENDING AN EXISTING GENOME INSTANCE ###
@@ -27,7 +27,7 @@ def add_segment_to_genome(
     output_size = seg_count * 2 * arm_count
     old_input_size = current_segment_count * 2 * arm_count + 1
 
-    max_nodes, max_conn = get_max_networks_dims(input_size, output_size)
+    max_nodes, max_conn = calculate_network_size_limits(input_size, output_size)
     new_nodes = np.full((max_nodes, 4), np.nan)
     idx = 0
     n_idx = 0
