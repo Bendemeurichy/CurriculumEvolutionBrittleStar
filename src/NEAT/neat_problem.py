@@ -92,7 +92,7 @@ class BrittleStarEnv(RLEnv):
         # no_movement_count = jnp.maximum(no_movement_count, 0)
                 
         # Use average velocity in reward instead of instantaneous velocity
-        reward = -distance + 5 * current_velocity 
+        reward = - distance + current_velocity 
         
         # Terminal condition
         done = jnp.array(distance < 0.1)
