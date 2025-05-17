@@ -186,11 +186,8 @@ class RLEnv(BaseProblem):
             cond_func,
             body_func,
             (init_obs[0], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[0], {
-                "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5), 
                 "distance": 0.0,
-                "progress": 0.0,
-                "positioning_activity": 0.0
+
             }),
         )
 
@@ -199,11 +196,7 @@ class RLEnv(BaseProblem):
             cond_func,
             body_func,
             (init_obs[1], init_env_state, rng_episode, False, 0.0, 0, episode, randkey, targets[1], {
-                "no_movement_count": 0,
-                "prev_arm_orientations": jnp.zeros(5),  
                 "distance": 0.0,
-                "progress": 0.0,
-                "positioning_activity": 0.0,
             }),
         )
         total_reward = jnp.minimum(total_reward2, total_reward2)
@@ -237,7 +230,7 @@ class RLEnv(BaseProblem):
     def show(self, state, randkey, act_func, params, *args, **kwargs):
         raise NotImplementedError
 
-    def get_observation(self, env_state):
+    def extract_observation(self, env_state):
         """Get observation from environment state"""
         # This is a simplified version - adjust according to your actual observation logic
         return env_state.observations
