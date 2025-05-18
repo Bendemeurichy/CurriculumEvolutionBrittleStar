@@ -34,6 +34,7 @@ Here's a breakdown of the key files and directories:
     │   ├── neat_problem.py     # Defines the NEAT problem for the brittle star
     │   ├── neat_controller.py  # NEAT controller logic
     │   ├── visualize.py        # Utilities for visualizing NEAT results
+    │   ├── NBestPipeline.py    # Custom implementation of tensorNEAT pipeline class that tracks n best genomes
     │   └── ...                 # Other NEAT-related modules
     ├── models/                 # Stores trained NEAT genomes (models)
     │   ├── best_genome.pkl     # Example of a saved best-performing genome
