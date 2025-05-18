@@ -1,4 +1,3 @@
-
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -6,6 +5,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 import render
 import jax
 import jax.numpy as jnp
+from functools import lru_cache
+from typing import Dict, Tuple, Any
 
 import NEAT.config as config
 from environment import initialize_simulation
@@ -15,38 +16,42 @@ from NEAT.neat_controller import initialize_neat_pipeline
 from NEAT.neat_problem import BrittleStarEnv
 from initialize import mujoco
 
+# Cache for environments and pipelines
+# Structure: {num_segments: (problem, pipeline, state, env, env_state, env_config)}
+ENV_CACHE: Dict[int, Tuple[Any, Any, Any, Any, Any, Any]] = {}
+
+
+config.TARGET_POSITION = (-0.6930648989168606, -1.8760759701806753)
 
 def run_model(model_path,segments = config.NUM_SEGMENTS_PER_ARM):
 
     genome = load_model(model_path)
-    #genome = add_segment_to_genome(genome, 1)
-    # save_network_visualization(genome)
-    # exit(1)
-    problem = BrittleStarEnv(num_segments_per_arm=segments)
-
-    pipeline = initialize_neat_pipeline(problem)
-    state = pipeline.setup()
-
     
-    return get_step_count(state=state, genome=genome, algorithm=pipeline.algorithm,segments=segments)
+    # Get cached environment or create a new one
+    problem, pipeline, state, env, env_state, _ = get_cached_environment(segments)
+    
+    # Reset environment state for new run
+    if config.TARGET_POSITION is not None:
+        env_state = env.reset(rng=env_state.rng, target_position=config.TARGET_POSITION)
+    else:
+        env_state = env.reset(rng=env_state.rng)
+    
+    return get_step_count(
+        state=state, 
+        genome=genome, 
+        algorithm=pipeline.algorithm,
+        segments=segments,
+        env=env,
+        env_state=env_state
+    )
 
 
 
-def get_step_count(state, genome, algorithm, segments):
+def get_step_count(state, genome, algorithm, segments, env, env_state):
     # Setup JAX to use GPU if available
     key = jax.random.PRNGKey(config.SEED)
 
-    env, env_state, environment_configuration = initialize_simulation(
-        env_type="directed_locomotion",
-        num_arms=config.NUM_ARMS,
-        num_segments_per_arm=segments,
-        backend="MJX",
-        simulation_time=config.SIMULATION_DURATION,
-        time_scale=config.TIME_SCALE,
-        target_distance=config.TARGET_DISTANCE,
-        num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
-        seed=config.SEED,
-    )
+    
 
     if config.TARGET_POSITION is not None:
         env_state = env.reset(rng=env_state.rng, target_position=config.TARGET_POSITION)
@@ -122,6 +127,45 @@ def find_best_genomes_by_segments(folder: str):
     result.sort(key=lambda x: x[0])  # Sort by number of segments
     
     return result
+
+def get_cached_environment(segments):
+    """
+    Get or create a cached environment, pipeline and state for the given segment count
+    
+    Args:
+        segments: Number of segments per arm
+        
+    Returns:
+        Tuple of (problem, pipeline, state, env, env_state, environment_configuration)
+    """
+    # Check if we already have a cached environment for this segment count
+    if segments[0] in ENV_CACHE:
+        print(f"Using cached environment for {segments} segments")
+        return ENV_CACHE[segments[0]]
+    
+    print(f"Initializing new environment for {segments} segments")
+    
+    # Create a new environment
+    problem = BrittleStarEnv(num_segments_per_arm=segments)
+    pipeline = initialize_neat_pipeline(problem)
+    state = pipeline.setup()
+    
+    env, env_state, environment_configuration = initialize_simulation(
+        env_type="directed_locomotion",
+        num_arms=config.NUM_ARMS,
+        num_segments_per_arm=segments,
+        backend="MJX",
+        simulation_time=config.SIMULATION_DURATION,
+        time_scale=config.TIME_SCALE,
+        target_distance=config.TARGET_DISTANCE,
+        num_physics_steps_per_control_step=config.NUM_PHYSICS_STEPS_PER_CONTROL_STEP,
+        seed=config.SEED,
+    )
+    
+    # Cache the environment
+    ENV_CACHE[segments[0]] = (problem, pipeline, state, env, env_state, environment_configuration)
+    
+    return ENV_CACHE[segments[0]] 
 
 
 if __name__ == "__main__":
