@@ -81,6 +81,7 @@ Here's a breakdown of the key files and directories:
         ```
     *   The script supports different training modes, including curriculum learning (e.g., `train_neat_curriculum()`). Check the `if __name__ == "__main__":` block in `src/NEAT/train.py` to see which training function is currently active.
     *   Trained models (genomes) will be saved in the `src/models/` directory.
+    *   The script has arguments for the training mode with `--mode {"curriculum" / "no_curriculum"}` and for an identifier for the produced model files with `--index {integer}` 
 
 3.  **Running on an HPC Cluster (PBS):**
     *   The `src/hpc_script.sh` is provided for running training jobs on an HPC cluster that uses the PBS scheduler.
