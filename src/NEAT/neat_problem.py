@@ -68,7 +68,7 @@ class BrittleStarEnv(RLEnv):
 
         done = jnp.array(distance < config.TARGET_REACHED_THRESHOLD)
 
-        reward = jnp.where(distance < config.TARGET_REACHED_THRESHOLD, reward + 1000.0, reward)
+        reward = jnp.where(distance < config.TARGET_REACHED_THRESHOLD, reward + 500.0, reward)
         
         info = {
             "distance": distance,
@@ -78,7 +78,6 @@ class BrittleStarEnv(RLEnv):
 
     def env_reset(self, randkey):
         """Reset the environment"""
-        # Generate new randkey for target placement
         target_key = jax.random.fold_in(randkey, 0)
 
         if config.TARGET_POSITION is not None:
@@ -86,10 +85,8 @@ class BrittleStarEnv(RLEnv):
                 rng=randkey, target_position=config.TARGET_POSITION
             )
         else:
-            # Reset with random target position
             env_state = self.env.reset(rng=target_key)
 
-        # Create separate random keys for each target
         target_key1, target_key2 = jax.random.split(randkey)
         targets = jnp.array(
             [
