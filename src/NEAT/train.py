@@ -56,7 +56,7 @@ def train_neat_controller(extend_genome=True):
     return state, best_genomes
 
 
-def train_neat_curriculum(start_genome=None):
+def train_neat_curriculum(start_genome=None, index: int = None):
 
     start_num_segments = 1
     if start_genome is not None:
@@ -93,10 +93,20 @@ def train_neat_curriculum(start_genome=None):
 
         generations_per_segment.append(generations)
 
-        for j, genome in enumerate(best_genomes):
-            save_genome(
-                genome, output_dir="./models", filename=f"best_{j}_genome_{i}_seg.pkl"
-            )
+        if index is None:
+            for j, genome in enumerate(best_genomes):
+                save_genome(
+                    genome,
+                    output_dir="./models",
+                    filename=f"best_{j}_genome_{i}_seg.pkl",
+                )
+        else:
+            for j, genome in enumerate(best_genomes):
+                save_genome(
+                    genome,
+                    output_dir="./models",
+                    filename=f"best_{j}_genome_{i}_seg_nr{index}.pkl",
+                )
 
         config.NUM_SEGMENTS_PER_ARM = [i + 1] * config.NUM_ARMS
 
@@ -185,10 +195,16 @@ if __name__ == "__main__":
         default="no_curriculum",
         help="Choose training mode: curriculum or no_curriculum",
     )
+    parser.add_argument(
+        "--index",
+        type=int,
+        default=None,
+        help="Index for the genome to be used in curriculum training",
+    )
 
     args = parser.parse_args()
 
     if args.mode == "curriculum":
-        train_neat_curriculum()
+        train_neat_curriculum(index=args.index)
     else:
         train_neat_no_curriculum()

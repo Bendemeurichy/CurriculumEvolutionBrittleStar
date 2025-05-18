@@ -16,7 +16,7 @@ cd brittlestar/NEAT
 
 # Run the Python script
 
-python -u train.py --mode curriculum
+python -u train.py --mode curriculum --index ${PBS_JOBID}
 
 # python -u train.py --mode no_curriculum
 
