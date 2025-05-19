@@ -1,13 +1,12 @@
 """Controller for brittle star movement using NEAT neural networks."""
 import jax
 import jax.numpy as jnp
-from NEAT.NBestPipeline import NBestPipeline
+from NEAT.multi_genome_pipeline import MultiGenomePipeline
 from NEAT.observations import (
     extract_joint_positions,
     calculate_direction_to_target,
 )
-import NEAT.config as config
-from tensorneat.pipeline import Pipeline
+import config as config
 from tensorneat.algorithm.neat import NEAT
 from tensorneat.genome import DefaultGenome, BiasNode
 from tensorneat.common import ACT, AGG
@@ -105,7 +104,7 @@ def initialize_neat_pipeline(problem):
     num_inputs, num_outputs = problem._input_dims, problem._output_dims
     max_nodes, max_connections = calculate_network_size_limits(num_inputs, num_outputs)
 
-    return NBestPipeline(
+    return MultiGenomePipeline(
         algorithm=NEAT(
             pop_size=config.POPULATION_SIZE,
             species_size=config.SPECIES_SIZE,

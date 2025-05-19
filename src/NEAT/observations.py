@@ -1,7 +1,6 @@
 """Module for extracting observations from the brittle star environment."""
 import jax.numpy as jnp
 from moojoco.environment.mjx_env import MJXEnvState
-import jax
 
 
 def extract_disk_position(env_state: MJXEnvState) -> jnp.ndarray:

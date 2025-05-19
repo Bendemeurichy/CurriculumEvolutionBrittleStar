@@ -7,7 +7,6 @@ import numpy as np
 from tensorneat.problem.base import BaseProblem
 from tensorneat.common import State
 
-
 class RLEnv(BaseProblem):
     jitable = True
 
@@ -181,7 +180,6 @@ class RLEnv(BaseProblem):
                 info,
             )
 
-        # Also update the tuple unpacking to handle all 9 returned elements
         _, _, _, _, total_reward, _, _, _, _, info1 = jax.lax.while_loop(
             cond_func,
             body_func,
@@ -191,7 +189,6 @@ class RLEnv(BaseProblem):
             }),
         )
 
-        # Update the second while_loop unpacking as well
         _, _, _, _, total_reward2, _, _, _, _, info2 = jax.lax.while_loop(
             cond_func,
             body_func,
@@ -232,7 +229,6 @@ class RLEnv(BaseProblem):
 
     def extract_observation(self, env_state):
         """Get observation from environment state"""
-        # This is a simplified version - adjust according to your actual observation logic
         return env_state.observations
 
   

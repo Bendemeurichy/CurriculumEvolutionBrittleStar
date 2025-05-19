@@ -17,7 +17,7 @@ from biorobot.brittle_star.mjcf.morphology.specification.specification import (
     BrittleStarArmSpecification,
 )
 
-import NEAT.config as config
+import config as config
 
 
 def create_morphology(

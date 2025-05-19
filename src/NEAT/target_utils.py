@@ -1,5 +1,4 @@
 import jax.numpy as jnp
-import jax
 
 def get_distance_to_closest_target(disk_position, targets):
     """Calculate distance to closest target."""
@@ -11,15 +10,12 @@ def get_distance_to_closest_target(disk_position, targets):
 
 def get_direction_to_closest_target(disk_position, disk_rotation, target):
     """Calculate direction to the single target relative to disk orientation."""
-    # Get the single target position
     target_position = target[:2]
     direction_vector = target_position - disk_position
     
-    # Normalize the direction vector
     distance = jnp.linalg.norm(direction_vector)
     unit_direction = direction_vector / jnp.where(distance > 0, distance, 1.0)
     
-    # Calculate angle to target in world coordinates
     target_angle = jnp.arctan2(unit_direction[1], unit_direction[0])
     
     # Calculate angle difference (between -pi and pi)

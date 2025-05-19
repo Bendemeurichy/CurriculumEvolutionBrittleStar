@@ -8,7 +8,8 @@ from tensorneat.common import State
 import jax.numpy as jnp
 
 
-class NBestPipeline(Pipeline):
+
+class MultiGenomePipeline(Pipeline):
     def __init__(
         self,
         *args,
@@ -30,7 +31,6 @@ class NBestPipeline(Pipeline):
         generation = int(state.generation)
 
         valid_fitnesses = fitnesses[~np.isinf(fitnesses)]
-        # avoid there is no valid fitness in the whole population
         if len(valid_fitnesses) == 0:
             max_f, min_f, mean_f, std_f = ["NaN"] * 4
         else:
@@ -49,7 +49,6 @@ class NBestPipeline(Pipeline):
         min_distance = np.min(distances)
         
 
-        # Optimization: Only consider genomes that might make it into the top N
         worst_top_fitness = float("-inf")
         if len(self.best_genomes) >= self.n_best:
             worst_top_fitness = min(self.best_fitnesses)
@@ -65,7 +64,6 @@ class NBestPipeline(Pipeline):
 
         # Keep only top N genomes by sorting both lists based on fitness
         if self.best_fitnesses:
-            # Sort both lists by fitness (descending)
             sorted_indices = np.argsort(self.best_fitnesses)[::-1]
             self.best_fitnesses = [
                 self.best_fitnesses[i] for i in sorted_indices[: self.n_best]
@@ -74,13 +72,11 @@ class NBestPipeline(Pipeline):
                 self.best_genomes[i] for i in sorted_indices[: self.n_best]
             ]
 
-        # For backward compatibility - set best_fitness and best_genome
         if self.best_genomes:
             self.best_fitness = self.best_fitnesses[0]
             self.best_genome = self.best_genomes[0]
 
         if self.is_save:
-            # save best genome of this generation
             max_idx = np.argmax(fitnesses)
             best_genome = jax.device_get((pop[0][max_idx], pop[1][max_idx]))
             file_name = os.path.join(self.genome_dir, f"{generation}.npz")
@@ -97,7 +93,6 @@ class NBestPipeline(Pipeline):
             if not os.path.exists(top_dir):
                 os.makedirs(top_dir)
 
-            # Save each genome with its fitness
             for i, (genome, fitness) in enumerate(
                 zip(self.best_genomes, self.best_fitnesses)
             ):
@@ -221,7 +216,6 @@ class NBestPipeline(Pipeline):
         Returns:
             State: The updated state after one step.
         """
-        # Call the original step function
         state, previous_pop, fitnesses, distances = super().step(state)
 
         return state, previous_pop, fitnesses, distances

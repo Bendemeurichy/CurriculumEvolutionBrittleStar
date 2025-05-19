@@ -1,10 +1,8 @@
-import copy
 import jax.numpy as jnp
-import numpy as np  # For random number generation
+import numpy as np  
 from tensorneat.common import State
-from tensorneat.genome.utils import add_conn, add_node
 from tensorneat.pipeline import Pipeline
-import jax.random
+import jax
 import time
 from NEAT.neat_controller import calculate_network_size_limits
 
@@ -17,7 +15,6 @@ def add_segment_to_genome(
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
     nodes, connections = genome
 
-    # convert jax array to numpy array
     nodes = np.array(nodes)
     connections = np.array(connections)
     seg_count = current_segment_count + 1
@@ -33,7 +30,6 @@ def add_segment_to_genome(
     n_idx = 0
     new_node_mapping = {}
 
-    # Track newly added input and output nodes
     new_input_nodes = []
     new_output_nodes = []
 
@@ -45,7 +41,6 @@ def add_segment_to_genome(
             new_node_mapping[n[0]] = idx
             idx += 1
 
-        # add the new input nodes and track them
 
         attributes = [
             idx,
@@ -69,7 +64,6 @@ def add_segment_to_genome(
         new_input_nodes.append(idx)
         idx += 1
 
-    # Add the last input node
     for i in range(n_idx, old_input_size):
         n = nodes[n_idx]
         n_idx += 1
@@ -77,10 +71,8 @@ def add_segment_to_genome(
         new_node_mapping[n[0]] = idx
         idx += 1
 
-    # Remember the output start index
     output_start_idx = idx
 
-    # add output nodes
     for arm in range(arm_count):
         for i in range(current_segment_count * 2):
             n = nodes[n_idx]
@@ -89,14 +81,13 @@ def add_segment_to_genome(
             new_node_mapping[n[0]] = idx
             idx += 1
 
-        # add the new output nodes and track them
 
         attributes = [
             idx,
             np.random.normal(),
             0,
             np.random.randint(0, 3),
-        ]  # [Node ID, Bias, Aggregation function, Activation function]
+        ] 
 
         new_nodes[idx] = np.array(attributes)
         new_output_nodes.append(idx)
@@ -108,7 +99,6 @@ def add_segment_to_genome(
         new_output_nodes.append(idx)
         idx += 1
 
-    # Calculate hidden layer start index
     hidden_start_idx = idx + 1  # +1 for the padding between nodes and hidden nodes
 
     # add hidden nodes
@@ -136,61 +126,35 @@ def add_segment_to_genome(
         new_connections[conn_idx] = np.array([start_conn, end_conn, c[2]])
         conn_idx += 1
 
-    # Generate a seed for random number generation
     np.random.seed(int(time.time()))
 
     # Add new connections to new input/output nodes
 
-    # Connect each new input node to a subset of hidden nodes and output nodes
     for input_node in new_input_nodes:
-        # Connect to some output nodes
         for output_node in range(output_start_idx, hidden_start_idx - 1):
-            # Add connections with 50% probability
             if np.random.random() < 0.5:
                 weight = np.random.uniform(-1.0, 1.0)  # Random weight
                 new_connections[conn_idx] = np.array([input_node, output_node, weight])
                 conn_idx += 1
 
-        # Connect to some hidden nodes if they exist
         for hidden_node in range(hidden_start_idx, idx):
-            # Add connections with 30% probability
             if np.random.random() < 0.3:
                 weight = np.random.uniform(-1.0, 1.0)  # Random weight
                 new_connections[conn_idx] = np.array([input_node, hidden_node, weight])
                 conn_idx += 1
 
-    # Initialize connections for new output nodes
-    # Connect each new output node from a subset of input nodes and hidden nodes
     for output_node in new_output_nodes:
-        # Connect from some input nodes
         for input_node in range(0, output_start_idx):
-            # Add connections with 50% probability
             if np.random.random() < 0.5:
                 weight = np.random.uniform(-1.0, 1.0)  # Random weight
                 new_connections[conn_idx] = np.array([input_node, output_node, weight])
                 conn_idx += 1
 
-        # Connect from some hidden nodes if they exist
         for hidden_node in range(hidden_start_idx, idx):
-            # Add connections with 30% probability
             if np.random.random() < 0.3:
                 weight = np.random.uniform(-1.0, 1.0)  # Random weight
                 new_connections[conn_idx] = np.array([hidden_node, output_node, weight])
                 conn_idx += 1
-
-        # # Connect between some output nodes
-        # Commented out this code for now because it produces invalid connections
-
-        # for other_output_node in new_nodes[output_start_idx:, 0]:
-        #     if np.random.random() < 0.1 and other_output_node != output_node:
-        #         weight = np.random.uniform(-1.0, 1.0)
-        #         new_connections[conn_idx] = np.array(
-        #             [output_node, other_output_node, weight]
-        #         )
-        #         conn_idx += 1
-
-        #     if conn_idx >= max_conn:
-        #         break
 
     return (
         jax.numpy.array(new_nodes, dtype=jax.numpy.float32),

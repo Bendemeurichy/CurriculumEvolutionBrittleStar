@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 
 from NEAT.neat_controller import scale_actions_to_joint_limits, extract_observation, calculate_environment_dimensions
-import NEAT.config as config
+import config as config
 from NEAT.RLEnv import RLEnv
 
 counter = 0

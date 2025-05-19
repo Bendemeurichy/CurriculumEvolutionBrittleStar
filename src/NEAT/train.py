@@ -8,7 +8,7 @@ from NEAT.genome_extension import extend_genome
 from NEAT.neat_problem import BrittleStarEnv
 from NEAT.neat_controller import initialize_neat_pipeline
 from NEAT.visualize import load_model
-import NEAT.config as config
+import config as config
 
 
 def save_genome(best, output_dir="./", filename="best_genome.pkl"):
@@ -19,41 +19,6 @@ def save_genome(best, output_dir="./", filename="best_genome.pkl"):
     with open(model_path, "wb") as f:
         pickle.dump(best, f)
     print(f"Best genome saved to {model_path}")
-
-
-def train_neat_controller(extend_genome=True):
-    """Train a TensorNEAT controller for the brittle star"""
-    print("Starting NEAT training for brittle star locomotion...")
-
-    problem = BrittleStarEnv()  # Use the new RLEnv-based class
-    # Get input and output dimensions
-    num_inputs, num_outputs = problem._input_dims, problem._output_dims
-    print(f"Environment requires {num_inputs} inputs and {num_outputs} outputs")
-
-    pipeline = initialize_neat_pipeline(problem)
-
-    print("Initializing TensorNEAT state...")
-    state = pipeline.setup()
-
-    if extend_genome:
-        genome = load_model("./models/genome_2_seg_rand.pkl")
-
-        state = extend_genome(
-            state,
-            pipeline,
-            genomes=[genome],
-            current_segment_count=2,
-            extra_segments=1,
-            arm_count=5,
-        )
-
-    state, best_genomes, generations = pipeline.auto_run(state)
-    print(f"Top {len(best_genomes)} genomes:")
-    print("Evolution completed successfully")
-    if best_genomes is not None:
-        save_genome(best_genomes, output_dir="./models")
-
-    return state, best_genomes
 
 
 def train_neat_curriculum(start_genome=None, index: int = None):
@@ -185,7 +150,6 @@ def train_neat_no_curriculum():
 if __name__ == "__main__":
     import argparse
 
-    # Arguments for training mode
     parser = argparse.ArgumentParser(
         description="Train NEAT controller for brittle star locomotion."
     )
